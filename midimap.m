@@ -3,6 +3,7 @@
 // Project Home: https://github.com/voidqk/midimap
 
 #include <stdio.h>
+#include <stdlib.h>
 #import <Foundation/Foundation.h>
 #include <CoreMIDI/CoreMIDI.h>
 #include <mach/mach_time.h>
@@ -42,6 +43,23 @@ void osxmidi_src_close(osxmidi_src_st *src){
 }
 */
 
+static char *format(const char *fmt, ...){
+	va_list args, args2;
+	va_start(args, fmt);
+	va_copy(args2, args);
+	size_t s = vsnprintf(NULL, 0, fmt, args);
+	char *buf = malloc(s + 1);
+	if (buf == NULL){
+		fprintf(stderr, "Fatal Error: Out of memory!\n");
+		exit(1);
+		return NULL;
+	}
+	vsprintf(buf, fmt, args2);
+	va_end(args);
+	va_end(args2);
+	return buf;
+}
+
 void midinotify(const MIDINotification *message, void *user){
 	const char *msg = "Unknown";
 	switch (message->messageID){
@@ -73,12 +91,18 @@ bool done = false;
 pthread_mutex_t done_mutex;
 pthread_cond_t done_cond;
 void catchdone(int dummy){
+	pthread_mutex_lock(&done_mutex);
 	done = true;
+	pthread_mutex_unlock(&done_mutex);
+	pthread_cond_signal(&done_cond);
 }
+
+MIDIEndpointRef midiout;
 
 int main(int argc, char **argv){
 	int result = 0;
 	bool init_midi = false;
+	bool init_out = false;
 
 	// get timing information for converting timestamps to seconds
 	{
@@ -89,10 +113,10 @@ int main(int argc, char **argv){
 	}
 
 	// initialize MIDI
-	MIDIClientRef client_ref;
+	MIDIClientRef client;
 	{
-		OSStatus cst = MIDIClientCreate((CFStringRef)@"midimap", midinotify, NULL, &client_ref);
-		if (cst != 0){
+		OSStatus st = MIDIClientCreate((CFStringRef)@"midimap", midinotify, NULL, &client);
+		if (st != 0){
 			fprintf(stderr, "Failed to initialize MIDI\n");
 			result = 1;
 			goto cleanup;
@@ -132,6 +156,42 @@ int main(int argc, char **argv){
 		}
 	}
 
+	// create our virtual MIDI source
+	{
+		// create a unique name
+		char *name = NULL;
+		int namei = 1;
+		while (true){
+			if (namei == 1)
+				name = format("midimap");
+			else
+				name = format("midimap %d", namei);
+			// search if name is already used
+			bool found = false;
+			for (int i = 0; i < srcs_size && !found; i++)
+				found = srcnames[i] && strcmp(name, srcnames[i]) == 0;
+			if (found){
+				free(name);
+				namei++;
+				continue;
+			}
+			break;
+		}
+		// create the device
+		CFStringRef cfname = CFStringCreateWithCString(NULL, name, kCFStringEncodingUTF8);
+		OSStatus st = MIDISourceCreate(client, cfname, &midiout);
+		CFRelease(cfname);
+		if (st != 0){
+			fprintf(stderr, "Failed to create virtual MIDI endpoint \"%s\"\n", name);
+			free(name);
+			result = 1;
+			goto cleanup;
+		}
+		init_out = true;
+		printf("Virtual MIDI device: %s\n", name);
+		free(name);
+	}
+
 	// wait for signal from Ctrl+C
 	{
 		printf("Press Ctrl+C to Quit\n");
@@ -149,7 +209,9 @@ int main(int argc, char **argv){
 	}
 
 	cleanup:
+	if (init_out)
+		MIDIEndpointDispose(midiout);
 	if (init_midi)
-		MIDIClientDispose(client_ref);
+		MIDIClientDispose(client);
 	return result;
 }
