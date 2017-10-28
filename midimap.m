@@ -104,6 +104,210 @@ int main(int argc, char **argv){
 	bool init_midi = false;
 	bool init_out = false;
 
+	// print version and copyright
+	printf(
+		"midimap 1.0\n"
+		"(c) Copyright 2017, Sean Connelly (@voidqk), http://syntheti.cc\n"
+		"MIT License\n"
+		"Project Home: https://github.com/voidqk/midimap\n");
+
+	// look for version
+	if (argc == 2 && (
+		strcmp(argv[1], "version") == 0 ||
+		strcmp(argv[1], "-version") == 0 ||
+		strcmp(argv[1], "--version") == 0 ||
+		strcmp(argv[1], "-v") == 0))
+		return 0; // already printed, so just exit immediately
+	printf("\n");
+
+	bool has_help = argc >= 2 && (
+		strcmp(argv[1], "help") == 0 ||
+		strcmp(argv[1], "-help") == 0 ||
+		strcmp(argv[1], "--help") == 0 ||
+		strcmp(argv[1], "-h") == 0);
+
+	// input help
+	if (has_help && argc >= 3 && strcmp(argv[2], "input") == 0){
+		printf(
+			"Usage:\n"
+			"  midimap [-m \"Input Device\" <mapfile>]+\n"
+			"\n"
+			"Input Devices:\n"
+			"  The program will always list out the available input devices.  For example:\n"
+			"    Source 1: \"Keyboard A\"\n"
+			"    Source 2: \"Keyboard B\"\n"
+			"    Source 3: No Name Available\n"
+			"    Source 4: \"Pads\"\n"
+			"    Source 5: \"Pads\"\n"
+			"\n"
+			"  Sources can be specified using the name:\n"
+			"    # selects the source named \"Keyboard A\"\n"
+			"    midimap -m \"Keyboard A\" <mapfile>\n"
+			"  Or the source index:\n"
+			"    # selects source index 5\n"
+			"    midimap -m 5 <mapfile>\n"
+			"\n"
+			"  For more information on how the mapfile works, run:\n"
+			"    midimap --help mapfile\n"
+		);
+		return 0;
+	}
+
+	// mapfile help
+	if (has_help && argc >= 3 && strcmp(argv[2], "mapfile") == 0){
+		printf(
+			"Usage:\n"
+			"  midimap [-m \"Input Device\" <mapfile>]+\n"
+			"\n"
+			"Map Files:\n"
+			"  Map files consist of a list of event handlers.  If the handler's criteria\n"
+			"  matches the message, the instructions in the handler are executed, and no\n"
+			"  further handlers are executed.\n"
+			"\n"
+			"    OnNote 1, NoteGb3, Any\n"
+			"      # Change the Gb3 to a C4\n"
+			"      Print \"Received:\", Channel, Note, Velocity\n"
+			"      SendNote 16, NoteC4, Velocity\n"
+			"    End\n"
+			"\n"
+			"  For this example, if the input device sends a Gb3 message at any velocity in\n"
+			"  channel 1, the program will print the message, and send a C4 instead on\n"
+			"  channel 16.\n"
+			"\n"
+			"  The first line is what message to intercept, and the matching criteria\n"
+			"  for the message.  Criteria can be a literal value, or `Any` which matches\n"
+			"  anything.  Inside the handler, the instructions are executed in order using\n"
+			"  raw values (\"Received:\", 16, NoteC4) or values dependant on the original\n"
+			"  message (Channel, Note, Velocity).\n"
+			"\n"
+			"  Any line that begins with a `#` is ignored and considered a comment.\n"
+			"\n"
+			"  All event handlers end with `End`.\n"
+			"\n"
+			"  Event Handlers:\n"
+			"    OnNote         <Channel>, <Note>, <Velocity>  Note is hit or released\n"
+			"    OnBend         <Channel>, <Bend>              Pitch bend for entire channel\n"
+			"    OnNotePressure <Channel>, <Note>, <Pressure>  Aftertouch applied to note\n"
+			"    OnChanPressure <Channel>, <Pressure>          Aftertouch for entire channel\n"
+			"    OnPatch        <Channel>, <Patch>             Program change patch\n"
+			"    OnLowCC        <Channel>, <Control>, <Value>  Low-res control change\n"
+			"    OnHighCC       <Channel>, <Control>, <Value>  High-res control change\n"
+			"    OnRPN          <Channel>, <RPN>, <Value>      Registered device parameter\n"
+			"    OnNRPN         <Channel>, <NRPN>, <Value>     Custom device parameter\n"
+			"    OnAllSoundOff  <Channel>                      All Sound Off message\n"
+			"    OnAllNotesOff  <Channel>                      All Notes Off message\n"
+			"    OnReset        <Channel>                      Reset All Controllers message\n"
+			"    OnElse                                        Messages not matched\n"
+			"\n"
+			"  Parameters:\n"
+			"    Channel   MIDI Channel (1-16)\n"
+			"    Note      Note value (NoteC0-NoteG8) Use flats for black keys: NoteDb4, etc\n"
+			"    Velocity  How hard the note was hit (0-127) Use 0 for note off\n"
+			"    Bend      Amount to bend (0-16383, center at 8192)\n"
+			"    Pressure  Aftertouch intensity (0-127)\n"
+			"    Patch     Patch being selected (0-127)\n"
+			"    Control   Control being modified (see table below)\n"
+			"    Value     Value for the control (LowCC: 0-127, HighCC/RPN/NRPN: 0-16383)\n"
+			"    RPN       Registered parameter being modified (see table below)\n"
+			"    NRPN      Non-registered parameter being modified (0-16383)\n"
+			"\n"
+			"  Low-Resolution Controls (MIDI hex value in parenthesis for reference):\n"
+			"    ControlPedal      (40)          ControlGeneral5    (50)\n"
+			"    ControlPortamento (41)          ControlGeneral6    (51)\n"
+			"    ControlSostenuto  (42)          ControlGeneral7    (52)\n"
+			"    ControlSoftPedal  (43)          ControlGeneral8    (53)\n"
+			"    ControlLegato     (44)          ControlPortamento2 (54)\n"
+			"    ControlHold2      (45)          ControlUndefined1  (55)\n"
+			"    ControlSound1     (46)          ControlUndefined2  (56)\n"
+			"    ControlSound2     (47)          ControlUndefined3  (57)\n"
+			"    ControlSound3     (48)          ControlVelocityLow (58)\n"
+			"    ControlSound4     (49)          ControlUndefined4  (59)\n"
+			"    ControlSound5     (4A)          ControlUndefined5  (5A)\n"
+			"    ControlSound6     (4B)          ControlEffect1     (5B)\n"
+			"    ControlSound7     (4C)          ControlEffect2     (5C)\n"
+			"    ControlSound8     (4D)          ControlEffect3     (5D)\n"
+			"    ControlSound9     (4E)          ControlEffect4     (5E)\n"
+			"    ControlSound10    (4F)          ControlEffect5     (5F)\n"
+			"\n"
+			"  High-Resolution Controls (MIDI hex values in parenthesis for reference):\n"
+			"    ControlBank           (00/20)   ControlGeneral1    (10/30)\n"
+			"    ControlMod            (01/21)   ControlGeneral2    (11/31)\n"
+			"    ControlBreath         (02/22)   ControlGeneral3    (12/32)\n"
+			"    ControlUndefined6     (03/23)   ControlGeneral4    (13/33)\n"
+			"    ControlFoot           (04/24)   ControlUndefined10 (14/34)\n"
+			"    ControlPortamentoTime (05/25)   ControlUndefined11 (15/35)\n"
+			"    ControlChannelVolume  (07/27)   ControlUndefined12 (16/36)\n"
+			"    ControlBalance        (08/28)   ControlUndefined13 (17/37)\n"
+			"    ControlUndefined7     (09/29)   ControlUndefined14 (18/38)\n"
+			"    ControlPan            (0A/2A)   ControlUndefined15 (19/39)\n"
+			"    ControlExpression     (0B/2B)   ControlUndefined16 (1A/3A)\n"
+			"    ControlEffect6        (0C/2C)   ControlUndefined17 (1B/3B)\n"
+			"    ControlEffect7        (0D/2D)   ControlUndefined18 (1C/3C)\n"
+			"    ControlUndefined8     (0E/2E)   ControlUndefined19 (1D/3D)\n"
+			"    ControlUndefined9     (0F/2F)   ControlUndefined20 (1E/3E)\n"
+			"                                    ControlUndefined21 (1F/3F)\n"
+			"\n"
+			"  Registered Parameters (MIDI hex values in parenthesis for reference):\n"
+			"    RPNBendRange     (00/00)        RPNAzimuth          (3D/00)\n"
+			"    RPNFineTuning    (00/01)        RPNElevation        (3D/01)\n"
+			"    RPNCoarseTuning  (00/02)        RPNGain             (3D/02)\n"
+			"    RPNTuningProgram (00/03)        RPNDistanceRatio    (3D/03)\n"
+			"    RPNTuningBank    (00/04)        RPNMaxDistance      (3D/04)\n"
+			"    RPNModRange      (00/05)        RPNGainAtMax        (3D/05)\n"
+			"    RPNEmpty         (7F/7F)        RPNRefDistanceRatio (3D/06)\n"
+			"                                    RPNPanSpread        (3D/07)\n"
+			"                                    RPNRoll             (3D/08)\n"
+			"\n"
+			"  Commands:\n"
+			"    Print \"Message\", \"Another\", ...              Print values to console\n"
+			"      (`Print RawData` will print the raw bytes received in hexadecimal)\n"
+			"    SendCopy                                         Send a copy of the message\n"
+			"    SendNote         <Channel>, <Note>, <Velocity>\n"
+			"      (Use 0 for Velocity to send note off)\n"
+			"    SendBend         <Channel>, <Bend>\n"
+			"    SendNotePressure <Channel>, <Note>, <Pressure>\n"
+			"    SendChanPressure <Channel>, <Pressure>\n"
+			"    SendPatch        <Channel>, <Patch>\n"
+			"    SendLowCC        <Channel>, <Control>, <Value>\n"
+			"    SendHighCC       <Channel>, <Control>, <Value>\n"
+			"    SendRPN          <Channel>, <RPN>, <Value>\n"
+			"    SendNRPN         <Channel>, <NRPN>, <Value>\n"
+			"    SendAllSoundOff  <Channel>\n"
+			"    SendAllNotesOff  <Channel>\n"
+			"    SendReset        <Channel>\n"
+			"\n"
+			"  For more information on specifying input devices, run:\n"
+			"    midimap --help input\n"
+		);
+		return 0;
+	}
+
+	// look for help
+	if (has_help){
+		printf(
+			"Usage:\n"
+			"  midimap [-m \"Input Device\" <mapfile>]+\n"
+			"\n"
+			"  With no arguments specified, midimap will simply list the available sources\n"
+			"  for MIDI input.\n"
+			"\n"
+			"  For every `-m` argument, the program will listen for MIDI messages from the\n"
+			"  input device, and apply the rules outlined in the <mapfile> for every message\n"
+			"  received.\n"
+			"\n"
+			"  The program will output the results to a single virtual MIDI device, named\n"
+			"  in the format of \"midimap\", \"midimap 2\", \"midimap 3\", etc, for each\n"
+			"  copy of the program running.\n"
+			"\n"
+			"  For more information on specifying input devices, run:\n"
+			"    midimap --help input\n"
+			"\n"
+			"  For more information on how the mapfile works, run:\n"
+			"    midimap --help mapfile\n"
+		);
+		return 0;
+	}
+
 	// get timing information for converting timestamps to seconds
 	{
 		mach_timebase_info_data_t ts;
@@ -152,9 +356,14 @@ int main(int argc, char **argv){
 				name != nil){
 				srcnames[si] = [(NSString *)name UTF8String];
 			}
-			printf("Source %d: %s\n", i + 1, srcnames[si] ? srcnames[si] : "<No Name>");
+			if (srcnames[si])
+				printf("Source %d: \"%s\"\n", i + 1, srcnames[si]);
+			else
+				printf("Source %d: No Name Available\n", i + 1);
 		}
 	}
+
+	// interpret the command line arguments
 
 	// create our virtual MIDI source
 	{
