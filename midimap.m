@@ -132,6 +132,7 @@ void osxmidi_src_close(osxmidi_src_st *src){
 	X(Empty           , 0x7F, 0x7F)
 
 #define EACH_NOTE(X)  \
+	X(_Any,  -1)      \
 	X( CN2,   0)      \
 	X(DbN2,   1)      \
 	X( DN2,   2)      \
@@ -368,42 +369,41 @@ void rpn_midi(rpn_type rpn, int *midi1, int *midi2){
 
 const char *note_name(int note){
 	switch (note){
-		#define X(name, v)   case v: return "Note" # name;
+		#define X(name, v)   case v: return v == -1 ? "Any" : "Note" # name;
 		EACH_NOTE(X)
 		#undef X
 	}
 	return "<Unknown>";
 }
 
-bool note_fromname(const char *str, int *note){
-	#define X(name, v)                         \
-		if (strcmp(str, "Note" # name) == 0){  \
-			*note = v;                         \
-			return true;                       \
-		}
+int note_fromname(const char *str){
+	#define X(name, v)                                     \
+		if ((v == -1 && strcmp(str, "Any") == 0) ||        \
+			(v != -1 && strcmp(str, "Note" # name) == 0))  \
+			return v;
 	EACH_NOTE(X)
 	#undef X
-	return false;
+	return -2;
 }
 
 typedef enum {
-	MA_VAL_NUM,
-	MA_VAL_STR,
-	MA_VAL_NOTE,
-	MA_VAL_LOWCC,
-	MA_VAL_HIGHCC,
-	MA_VAL_RPN,
-	MA_RAWDATA,
-	MA_CHANNEL,
-	MA_NOTE,
-	MA_VELOCITY,
-	MA_BEND,
-	MA_PRESSURE,
-	MA_PATCH,
-	MA_CONTROL,
-	MA_VALUE,
-	MA_RPN,
-	MA_NRPN
+	MA_VAL_NUM    = 1 <<  0,
+	MA_VAL_STR    = 1 <<  1,
+	MA_VAL_NOTE   = 1 <<  2,
+	MA_VAL_LOWCC  = 1 <<  3,
+	MA_VAL_HIGHCC = 1 <<  4,
+	MA_VAL_RPN    = 1 <<  5,
+	MA_RAWDATA    = 1 <<  6,
+	MA_CHANNEL    = 1 <<  7,
+	MA_NOTE       = 1 <<  8,
+	MA_VELOCITY   = 1 <<  9,
+	MA_BEND       = 1 << 10,
+	MA_PRESSURE   = 1 << 11,
+	MA_PATCH      = 1 << 12,
+	MA_CONTROL    = 1 << 13,
+	MA_VALUE      = 1 << 14,
+	MA_RPN        = 1 << 15,
+	MA_NRPN       = 1 << 16
 } maparg_type;
 
 typedef struct {
@@ -517,17 +517,34 @@ typedef struct {
 	maphandler_st *handlers;
 } mapfile_st, *mapfile;
 
+inline void *m_alloc(size_t size){
+	void *p = malloc(size);
+	if (p == NULL){
+		fprintf(stderr, "Fatal Error: Out of memory!\n");
+		exit(1);
+	}
+	return p;
+}
+
+inline void *m_realloc(void *p, size_t size){
+	p = realloc(p, size);
+	if (p == NULL){
+		fprintf(stderr, "Fatal Error: Out of memory!\n");
+		exit(1);
+	}
+	return p;
+}
+
+inline void m_free(void *p){
+	free(p);
+}
+
 char *format(const char *fmt, ...){
 	va_list args, args2;
 	va_start(args, fmt);
 	va_copy(args2, args);
 	size_t s = vsnprintf(NULL, 0, fmt, args);
-	char *buf = malloc(s + 1);
-	if (buf == NULL){
-		fprintf(stderr, "Fatal Error: Out of memory!\n");
-		exit(1);
-		return NULL;
-	}
+	char *buf = m_alloc(s + 1);
 	vsprintf(buf, fmt, args2);
 	va_end(args);
 	va_end(args2);
@@ -572,6 +589,486 @@ void catchdone(int dummy){
 }
 
 MIDIEndpointRef midiout;
+
+inline bool isWhite(char ch){
+	return ch == ' ' || ch == '\t' || ch == '\n' || ch == '\r';
+}
+
+inline bool isNum(char ch){
+	return ch >= '0' && ch <= '9';
+}
+
+bool parseint(const char *str, int *out){
+	int i = 0;
+	int num = 0;
+	bool nonwhite = false;
+	int digits = 0;
+	while (str[i]){
+		char ch = str[i++];
+		if (!nonwhite){
+			if (isWhite(ch))
+				continue;
+			nonwhite = true;
+		}
+		if (!isNum(ch))
+			return false;
+		num = (num * 10) + (ch - '0');
+		digits++;
+		if (digits > 6)
+			return false;
+	}
+	if (!nonwhite)
+		return false;
+	*out = num;
+	return true;
+}
+
+int anyint(const char *str){
+	if (strcmp(str, "Any") == 0)
+		return -1;
+	int ret;
+	if (parseint(str, &ret))
+		return ret;
+	return -2;
+}
+
+char *trim(char *line){
+	int s = 0;
+	while (line[s] && isWhite(line[s])){
+		if (line[s] == '#'){
+			line[0] = 0;
+			return line;
+		}
+		s++;
+	}
+	if (line[s] == 0){
+		line[0] = 0;
+		return line;
+	}
+	int len = 0;
+	int e = s;
+	while (line[e] && line[e] != '#'){
+		if (!isWhite(line[e]))
+			len = e - s + 1;
+		e++;
+	}
+	line[s + len] = 0;
+	return &line[s];
+}
+
+int split(char *line, char **comp){
+	int i = 0;
+	bool marking = false;
+	bool inside_str = false;
+	int next = 0;
+	while (line[i] && next < 10){
+		if (marking){
+			if (inside_str && line[i] == '"'){
+				i++;
+				marking = false;
+				line[i] = 0;
+			}
+			else if (!inside_str && isWhite(line[i])){
+				marking = false;
+				line[i] = 0;
+			}
+		}
+		else{
+			if (!isWhite(line[i])){
+				marking = true;
+				inside_str = line[i] == '"';
+				comp[next++] = &line[i];
+			}
+			else
+				line[i] = 0;
+		}
+		i++;
+	}
+	return next;
+}
+
+bool maparg_parse(const char *str, int allow_mask, maparg_st *ma){
+	if (allow_mask & MA_VAL_NUM){
+		int ret;
+		if (parseint(str, &ret)){
+			ma->type = MA_VAL_NUM;
+			ma->val.num = ret;
+			return true;
+		}
+	}
+	if (allow_mask & MA_VAL_STR){
+		if (str[0] == '"'){
+			int len = strlen(str);
+			if (str[len - 1] == '"'){
+				ma->type = MA_VAL_STR;
+				ma->val.str = format("%.*s", len - 2, &str[1]);
+				return true;
+			}
+		}
+	}
+	if (allow_mask & MA_VAL_NOTE){
+		int note = note_fromname(str);
+		if (note >= 0){
+			ma->type = MA_VAL_NOTE;
+			ma->val.note = note;
+			return true;
+		}
+	}
+	if (allow_mask & MA_VAL_LOWCC){
+		lowcc_type lowcc;
+		if (lowcc_fromname(str, &lowcc) && lowcc != LCC__Any){
+			ma->type = MA_VAL_LOWCC;
+			ma->val.lowcc = lowcc;
+			return true;
+		}
+	}
+	if (allow_mask & MA_VAL_HIGHCC){
+		highcc_type highcc;
+		if (highcc_fromname(str, &highcc) && highcc != HCC__Any){
+			ma->type = MA_VAL_HIGHCC;
+			ma->val.highcc = highcc;
+			return true;
+		}
+	}
+	if (allow_mask & MA_VAL_RPN){
+		rpn_type rpn;
+		if (rpn_fromname(str, &rpn) && rpn != RPN__Any){
+			ma->type = MA_VAL_RPN;
+			ma->val.rpn = rpn;
+			return true;
+		}
+	}
+	#define LITERAL(mask, litstr)           \
+		if (allow_mask & mask){             \
+			if (strcmp(str, litstr) == 0){  \
+				ma->type = mask;            \
+				return true;                \
+			}                               \
+		}
+	LITERAL(MA_RAWDATA , "RawData" )
+	LITERAL(MA_CHANNEL , "Channel" )
+	LITERAL(MA_NOTE    , "Note"    )
+	LITERAL(MA_VELOCITY, "Velocity")
+	LITERAL(MA_BEND    , "Bend"    )
+	LITERAL(MA_PRESSURE, "Pressure")
+	LITERAL(MA_PATCH   , "Patch"   )
+	LITERAL(MA_CONTROL , "Control" )
+	LITERAL(MA_VALUE   , "Value"   )
+	LITERAL(MA_RPN     , "RPN"     )
+	LITERAL(MA_NRPN    , "NRPN"    )
+	#undef LITERAL
+	return false;
+}
+
+void maphandler_parse(char *const *comp, int cs, bool *valid, bool *found, maphandler_st *mh){
+	*valid = false;
+	*found = true;
+	if (cs <= 0){
+		*valid = true;
+		*found = false;
+		return;
+	}
+
+	maphandler_type mht = MH_NOTE;
+	bool mhtv = false;
+	if      (strcmp(comp[0], "OnNote"        ) == 0){ mhtv = true; mht = MH_NOTE        ; }
+	else if (strcmp(comp[0], "OnBend"        ) == 0){ mhtv = true; mht = MH_BEND        ; }
+	else if (strcmp(comp[0], "OnNotePressure") == 0){ mhtv = true; mht = MH_NOTEPRESSURE; }
+	else if (strcmp(comp[0], "OnChanPressure") == 0){ mhtv = true; mht = MH_CHANPRESSURE; }
+	else if (strcmp(comp[0], "OnPatch"       ) == 0){ mhtv = true; mht = MH_PATCH       ; }
+	else if (strcmp(comp[0], "OnLowCC"       ) == 0){ mhtv = true; mht = MH_LOWCC       ; }
+	else if (strcmp(comp[0], "OnHighCC"      ) == 0){ mhtv = true; mht = MH_HIGHCC      ; }
+	else if (strcmp(comp[0], "OnRPN"         ) == 0){ mhtv = true; mht = MH_RPN         ; }
+	else if (strcmp(comp[0], "OnNRPN"        ) == 0){ mhtv = true; mht = MH_NRPN        ; }
+	else if (strcmp(comp[0], "OnAllSoundOff" ) == 0){ mhtv = true; mht = MH_ALLSOUNDOFF ; }
+	else if (strcmp(comp[0], "OnAllNotesOff" ) == 0){ mhtv = true; mht = MH_ALLNOTESOFF ; }
+	else if (strcmp(comp[0], "OnReset"       ) == 0){ mhtv = true; mht = MH_RESET       ; }
+	else if (strcmp(comp[0], "OnElse"        ) == 0){ mhtv = true; mht = MH_ELSE        ; }
+	if (!mhtv){
+		fprintf(stderr, "Invalid event handler: %s\n", comp[0]);
+		return;
+	}
+
+	#define TODO(s)   fprintf(stderr, "TODO: " s "\n"); abort();
+	switch (mht){
+		case MH_NOTE:
+			if (cs != 4){
+				fprintf(stderr, "Invalid format for OnNote handler\n");
+				return;
+			}
+			int channel  = anyint(comp[1]);
+			int note     = note_fromname(comp[2]);
+			int velocity = anyint(comp[3]);
+			if (channel < -1){
+				fprintf(stderr, "Invalid channel for OnNote handler: %s\n", comp[1]);
+				return;
+			}
+			if (note < -1){
+				fprintf(stderr, "Invalid note for OnNote handler: %s\n", comp[2]);
+				return;
+			}
+			if (velocity < -1){
+				fprintf(stderr, "Invalid velocity for OnNote handler: %s\n", comp[3]);
+				return;
+			}
+			*valid = true;
+			mh->type = MH_NOTE;
+			mh->u.note.channel = channel;
+			mh->u.note.note = note;
+			mh->u.note.velocity = velocity;
+			return;
+		case MH_BEND:
+			TODO("MH_BEND");
+			break;
+		case MH_NOTEPRESSURE:
+			TODO("MH_NOTEPRESSURE");
+			break;
+		case MH_CHANPRESSURE:
+			TODO("MH_CHANPRESSURE");
+			break;
+		case MH_PATCH:
+			TODO("MH_PATCH");
+			break;
+		case MH_LOWCC:
+			TODO("MH_LOWCC");
+			break;
+		case MH_HIGHCC:
+			TODO("MH_HIGHCC");
+			break;
+		case MH_RPN:
+			TODO("MH_RPN");
+			break;
+		case MH_NRPN:
+			TODO("MH_NRPN");
+			break;
+		case MH_ALLSOUNDOFF:
+			TODO("MH_ALLSOUNDOFF");
+			break;
+		case MH_ALLNOTESOFF:
+			TODO("MH_ALLNOTESOFF");
+			break;
+		case MH_RESET:
+			TODO("MH_RESET");
+			break;
+		case MH_ELSE:
+			TODO("MH_ELSE");
+			break;
+	}
+	#undef TODO
+}
+
+void mapcmd_parse(maphandler_type mht, char *const *comp, int cs, bool *valid, bool *isend,
+	bool *found, mapcmd_st *mc){
+	*valid = *isend = false;
+	*found = true;
+	if (cs <= 0){
+		*valid = true;
+		*found = false;
+		return;
+	}
+	else if (cs == 1 && strcmp(comp[0], "End") == 0){
+		*valid = true;
+		*isend = true;
+		*found = false;
+		return;
+	}
+
+	mapcmd_type mct = MC_PRINT;
+	bool mctv = false;
+	if      (strcmp(comp[0], "Print"           ) == 0){ mctv = true; mct = MC_PRINT           ; }
+	else if (strcmp(comp[0], "SendCopy"        ) == 0){ mctv = true; mct = MC_SENDCOPY        ; }
+	else if (strcmp(comp[0], "SendNote"        ) == 0){ mctv = true; mct = MC_SENDNOTE        ; }
+	else if (strcmp(comp[0], "SendBend"        ) == 0){ mctv = true; mct = MC_SENDBEND        ; }
+	else if (strcmp(comp[0], "SendNotePressure") == 0){ mctv = true; mct = MC_SENDNOTEPRESSURE; }
+	else if (strcmp(comp[0], "SendChanPressure") == 0){ mctv = true; mct = MC_SENDCHANPRESSURE; }
+	else if (strcmp(comp[0], "SendPatch"       ) == 0){ mctv = true; mct = MC_SENDPATCH       ; }
+	else if (strcmp(comp[0], "SendLowCC"       ) == 0){ mctv = true; mct = MC_SENDLOWCC       ; }
+	else if (strcmp(comp[0], "SendHighCC"      ) == 0){ mctv = true; mct = MC_SENDHIGHCC      ; }
+	else if (strcmp(comp[0], "SendRPN"         ) == 0){ mctv = true; mct = MC_SENDRPN         ; }
+	else if (strcmp(comp[0], "SendNRPN"        ) == 0){ mctv = true; mct = MC_SENDNRPN        ; }
+	else if (strcmp(comp[0], "SendAllSoundOff" ) == 0){ mctv = true; mct = MC_SENDALLSOUNDOFF ; }
+	else if (strcmp(comp[0], "SendAllNotesOff" ) == 0){ mctv = true; mct = MC_SENDALLNOTESOFF ; }
+	else if (strcmp(comp[0], "SendReset"       ) == 0){ mctv = true; mct = MC_SENDRESET       ; }
+	if (!mctv){
+		fprintf(stderr, "Invalid command: %s\n", comp[0]);
+		return;
+	}
+
+	#define TODO(s)   fprintf(stderr, "TODO: " s "\n"); abort();
+
+	int args_size = 0;
+	maparg_st *args = NULL;
+	#define ADD_ARG(str, allow_mask)  do{                                        \
+			maparg_st ma;                                                        \
+			if (!maparg_parse(str, allow_mask, &ma)){                            \
+				fprintf(stderr, "Invalid argument for %s: %s\n", comp[0], str);  \
+				goto fail;                                                       \
+			}                                                                    \
+			args_size++;                                                         \
+			args = m_realloc(args, sizeof(maparg_st) * args_size);               \
+			args[args_size - 1] = ma;                                            \
+		} while (false)
+
+	int mht_mask = 0;
+	switch (mht){
+		case MH_NOTE        : mht_mask = MA_CHANNEL | MA_NOTE | MA_VELOCITY; break;
+		case MH_BEND        : mht_mask = MA_CHANNEL | MA_BEND              ; break;
+		case MH_NOTEPRESSURE: mht_mask = MA_CHANNEL | MA_NOTE | MA_PRESSURE; break;
+		case MH_CHANPRESSURE: mht_mask = MA_CHANNEL | MA_PRESSURE          ; break;
+		case MH_PATCH       : mht_mask = MA_CHANNEL | MA_PATCH             ; break;
+		case MH_LOWCC       : mht_mask = MA_CHANNEL | MA_CONTROL | MA_VALUE; break;
+		case MH_HIGHCC      : mht_mask = MA_CHANNEL | MA_CONTROL | MA_VALUE; break;
+		case MH_RPN         : mht_mask = MA_CHANNEL | MA_RPN | MA_VALUE    ; break;
+		case MH_NRPN        : mht_mask = MA_CHANNEL | MA_NRPN | MA_VALUE   ; break;
+		case MH_ALLSOUNDOFF : mht_mask = MA_CHANNEL                        ; break;
+		case MH_ALLNOTESOFF : mht_mask = MA_CHANNEL                        ; break;
+		case MH_RESET       : mht_mask = MA_CHANNEL                        ; break;
+		case MH_ELSE        : mht_mask = 0                                 ; break;
+	}
+
+	switch (mct){
+		case MC_PRINT: {
+			int mask = mht_mask | MA_VAL_NUM | MA_VAL_STR | MA_VAL_NOTE | MA_VAL_LOWCC |
+				MA_VAL_HIGHCC | MA_VAL_RPN | MA_RAWDATA;
+			for (int i = 1; i < cs; i++)
+				ADD_ARG(comp[i], mask);
+			mc->type = MC_PRINT;
+			mc->size = args_size;
+			mc->args = args;
+		} return;
+		case MC_SENDCOPY:
+			TODO("MC_SENDCOPY");
+			break;
+		case MC_SENDNOTE:
+			if (cs != 4){
+				fprintf(stderr, "Invalid format for SendNote command\n");
+				return;
+			}
+			return;
+		case MC_SENDBEND:
+			TODO("MC_SENDBEND");
+			break;
+		case MC_SENDNOTEPRESSURE:
+			TODO("MC_SENDNOTEPRESSURE");
+			break;
+		case MC_SENDCHANPRESSURE:
+			TODO("MC_SENDCHANPRESSURE");
+			break;
+		case MC_SENDPATCH:
+			TODO("MC_SENDPATCH");
+			break;
+		case MC_SENDLOWCC:
+			TODO("MC_SENDLOWCC");
+			break;
+		case MC_SENDHIGHCC:
+			TODO("MC_SENDHIGHCC");
+			break;
+		case MC_SENDRPN:
+			TODO("MC_SENDRPN");
+			break;
+		case MC_SENDNRPN:
+			TODO("MC_SENDNRPN");
+			break;
+		case MC_SENDALLSOUNDOFF:
+			TODO("MC_SENDALLSOUNDOFF");
+			break;
+		case MC_SENDALLNOTESOFF:
+			TODO("MC_SENDALLNOTESOFF");
+			break;
+		case MC_SENDRESET:
+			TODO("MC_SENDRESET");
+			break;
+	}
+	return;
+
+	fail:
+	for (int i = 0; i < args_size; i++){
+		if (args[i].type == MA_VAL_STR)
+			free(args[i].val.str);
+	}
+	free(args);
+
+	#undef TODO
+	#undef ADD_ARG
+}
+
+void mapfile_free(mapfile mf){
+	for (int i = 0; i < mf->size; i++){
+		for (int j = 0; j < mf->handlers[i].size; j++){
+			for (int k = 0; k < mf->handlers[i].cmds[j].size; k++){
+				maparg arg = &mf->handlers[i].cmds[j].args[k];
+				if (arg->type == MA_VAL_STR)
+					free(arg->val.str);
+			}
+			free(mf->handlers[i].cmds[j].args);
+		}
+		free(mf->handlers[i].cmds);
+	}
+	free(mf);
+}
+
+mapfile mapfile_parse(const char *file){
+	FILE *fp = fopen(file, "r");
+	if (fp == NULL){
+		fprintf(stderr, "Failed to open map file: %s\n", file);
+		return NULL;
+	}
+
+	mapfile mf = m_alloc(sizeof(mapfile_st));
+	mf->size = 0;
+	mf->handlers = NULL;
+	maphandler mh;
+	enum {
+		ST_START,
+		ST_CMDS
+	} state = ST_START;
+	while (!feof(fp)){
+		char line[2000];
+		char *comp[11];
+		fgets(line, sizeof(line), fp);
+		switch (state){
+			case ST_START: {
+				bool valid, found;
+				maphandler_st mhs;
+				maphandler_parse(comp, split(trim(line), comp), &valid, &found, &mhs);
+				if (!valid)
+					goto invalid;
+				if (found){
+					mf->size++;
+					mf->handlers = m_realloc(mf->handlers, sizeof(maphandler_st) * mf->size);
+					mf->handlers[mf->size - 1] = mhs;
+					mh = &mf->handlers[mf->size - 1];
+					mh->size = 0;
+					mh->cmds = NULL;
+					state = ST_CMDS;
+				}
+			} break;
+			case ST_CMDS: {
+				bool valid, isend, found;
+				mapcmd_st mc;
+				mapcmd_parse(mh->type, comp, split(trim(line), comp), &valid, &isend, &found, &mc);
+				if (!valid)
+					goto invalid;
+				if (isend)
+					state = ST_START;
+				else if (found){
+					mh->size++;
+					mh->cmds = m_realloc(mh->cmds, sizeof(mapcmd_st) * mh->size);
+					mh->cmds[mh->size - 1] = mc;
+				}
+			} break;
+		}
+	}
+	if (state == ST_START){
+		fclose(fp);
+		return mf;
+	}
+	fprintf(stderr, "Missing `End` of handler\n");
+	invalid:
+	mapfile_free(mf);
+	fclose(fp);
+	return NULL;
+}
 
 int main(int argc, char **argv){
 	int result = 0;
@@ -638,10 +1135,10 @@ int main(int argc, char **argv){
 			"  matches the message, the instructions in the handler are executed, and no\n"
 			"  further handlers are executed.\n"
 			"\n"
-			"    OnNote 1, NoteGb3, Any\n"
+			"    OnNote 1 NoteGb3 Any\n"
 			"      # Change the Gb3 to a C4\n"
-			"      Print \"Received:\", Channel, Note, Velocity\n"
-			"      SendNote 16, NoteC4, Velocity\n"
+			"      Print \"Received:\" Channel Note Velocity\n"
+			"      SendNote 16 NoteC4 Velocity\n"
 			"    End\n"
 			"\n"
 			"  For this example, if the input device sends a Gb3 message at any velocity in\n"
@@ -659,19 +1156,19 @@ int main(int argc, char **argv){
 			"  All event handlers end with `End`.\n"
 			"\n"
 			"  Event Handlers:\n"
-			"    OnNote         <Channel>, <Note>, <Velocity>  Note is hit or released\n"
-			"    OnBend         <Channel>, <Bend>              Pitch bend for entire channel\n"
-			"    OnNotePressure <Channel>, <Note>, <Pressure>  Aftertouch applied to note\n"
-			"    OnChanPressure <Channel>, <Pressure>          Aftertouch for entire channel\n"
-			"    OnPatch        <Channel>, <Patch>             Program change patch\n"
-			"    OnLowCC        <Channel>, <Control>, <Value>  Low-res control change\n"
-			"    OnHighCC       <Channel>, <Control>, <Value>  High-res control change\n"
-			"    OnRPN          <Channel>, <RPN>, <Value>      Registered device parameter\n"
-			"    OnNRPN         <Channel>, <NRPN>, <Value>     Custom device parameter\n"
-			"    OnAllSoundOff  <Channel>                      All Sound Off message\n"
-			"    OnAllNotesOff  <Channel>                      All Notes Off message\n"
-			"    OnReset        <Channel>                      Reset All Controllers message\n"
-			"    OnElse                                        Messages not matched\n"
+			"    OnNote         <Channel> <Note> <Velocity>  Note is hit or released\n"
+			"    OnBend         <Channel> <Bend>             Pitch bend for entire channel\n"
+			"    OnNotePressure <Channel> <Note> <Pressure>  Aftertouch applied to note\n"
+			"    OnChanPressure <Channel> <Pressure>         Aftertouch for entire channel\n"
+			"    OnPatch        <Channel> <Patch>            Program change patch\n"
+			"    OnLowCC        <Channel> <Control> <Value>  Low-res control change\n"
+			"    OnHighCC       <Channel> <Control> <Value>  High-res control change\n"
+			"    OnRPN          <Channel> <RPN> <Value>      Registered device parameter\n"
+			"    OnNRPN         <Channel> <NRPN> <Value>     Custom device parameter\n"
+			"    OnAllSoundOff  <Channel>                    All Sound Off message\n"
+			"    OnAllNotesOff  <Channel>                    All Notes Off message\n"
+			"    OnReset        <Channel>                    Reset All Controllers message\n"
+			"    OnElse                                      Messages not matched\n"
 			"\n"
 			"  Parameters:\n"
 			"    Channel   MIDI Channel (1-16)\n"
@@ -749,16 +1246,16 @@ int main(int argc, char **argv){
 			"    Print \"Message\", \"Another\", ...              Print values to console\n"
 			"      (`Print RawData` will print the raw bytes received in hexadecimal)\n"
 			"    SendCopy                                         Send a copy of the message\n"
-			"    SendNote         <Channel>, <Note>, <Velocity>\n"
+			"    SendNote         <Channel> <Note> <Velocity>\n"
 			"      (Use 0 for Velocity to send note off)\n"
-			"    SendBend         <Channel>, <Bend>\n"
-			"    SendNotePressure <Channel>, <Note>, <Pressure>\n"
-			"    SendChanPressure <Channel>, <Pressure>\n"
-			"    SendPatch        <Channel>, <Patch>\n"
-			"    SendLowCC        <Channel>, <Control>, <Value>\n"
-			"    SendHighCC       <Channel>, <Control>, <Value>\n"
-			"    SendRPN          <Channel>, <RPN>, <Value>\n"
-			"    SendNRPN         <Channel>, <NRPN>, <Value>\n"
+			"    SendBend         <Channel> <Bend>\n"
+			"    SendNotePressure <Channel> <Note> <Pressure>\n"
+			"    SendChanPressure <Channel> <Pressure>\n"
+			"    SendPatch        <Channel> <Patch>\n"
+			"    SendLowCC        <Channel> <Control> <Value>\n"
+			"    SendHighCC       <Channel> <Control> <Value>\n"
+			"    SendRPN          <Channel> <RPN> <Value>\n"
+			"    SendNRPN         <Channel> <NRPN> <Value>\n"
 			"    SendAllSoundOff  <Channel>\n"
 			"    SendAllNotesOff  <Channel>\n"
 			"    SendReset        <Channel>\n"
@@ -818,8 +1315,11 @@ int main(int argc, char **argv){
 	// list sources
 	#define MAX_SOURCES 100
 	int srcs_size = 0;
-	MIDIEndpointRef srcs[MAX_SOURCES];
-	const char *srcnames[MAX_SOURCES];
+	struct {
+		MIDIEndpointRef ep;
+		const char *name;
+		int i;
+	} srcs[MAX_SOURCES];
 	{
 		int len = MIDIGetNumberOfSources();
 		if (len > MAX_SOURCES){
@@ -836,21 +1336,53 @@ int main(int argc, char **argv){
 				continue;
 			}
 			int si = srcs_size++;
-			srcs[si] = src;
-			srcnames[si] = NULL;
+			srcs[si].ep = src;
+			srcs[si].i = i + 1;
+			srcs[si].name = NULL;
 			CFStringRef name = nil;
 			if (MIDIObjectGetStringProperty(src, kMIDIPropertyDisplayName, &name) == 0 &&
 				name != nil){
-				srcnames[si] = [(NSString *)name UTF8String];
+				srcs[si].name = [(NSString *)name UTF8String];
 			}
-			if (srcnames[si])
-				printf("Source %d: \"%s\"\n", i + 1, srcnames[si]);
+			if (srcs[si].name)
+				printf("Source %d: \"%s\"\n", srcs[si].i, srcs[si].name);
 			else
-				printf("Source %d: No Name Available\n", i + 1);
+				printf("Source %d: No Name Available\n", srcs[si].i);
 		}
+		if (len == 0)
+			printf("No MIDI Sources found!\n");
+		printf("\n");
 	}
 
 	// interpret the command line arguments
+	{
+		for (int i = 1; i < argc; i += 3){
+			if (strcmp(argv[i], "-m") != 0 || i >= argc - 2){
+				fprintf(stderr, "Invalid command line argument\nFor help, type:\n  midimap --help");
+				result = 1;
+				goto cleanup;
+			}
+			// look for the device
+			int devi = -1;
+			int srci = -1;
+			parseint(argv[i + 1], &devi);
+			for (int j = 0; j < srcs_size && srci == -1; j++){
+				if (srcs[j].i == devi || strcmp(argv[i + 1], srcs[j].name) == 0)
+					srci = j;
+			}
+			if (srci == -1){
+				fprintf(stderr, "Failed to find MIDI device: %s\n", argv[i + 1]);
+				result = 1;
+				goto cleanup;
+			}
+			// parse the map file
+			mapfile mf = mapfile_parse(argv[i + 2]);
+			if (mf == NULL){
+				result = 1;
+				goto cleanup;
+			}
+		}
+	}
 
 	// create our virtual MIDI source
 	{
@@ -865,7 +1397,7 @@ int main(int argc, char **argv){
 			// search if name is already used
 			bool found = false;
 			for (int i = 0; i < srcs_size && !found; i++)
-				found = srcnames[i] && strcmp(name, srcnames[i]) == 0;
+				found = srcs[i].name && strcmp(name, srcs[i].name) == 0;
 			if (found){
 				free(name);
 				namei++;
