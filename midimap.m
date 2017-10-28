@@ -898,6 +898,7 @@ void mapcmd_parse(maphandler_type mht, char *const *comp, int cs, bool *valid, b
 
 	int args_size = 0;
 	maparg_st *args = NULL;
+
 	#define ADD_ARG(str, allow_mask)  do{                                        \
 			maparg_st ma;                                                        \
 			if (!maparg_parse(str, allow_mask, &ma)){                            \
@@ -907,6 +908,14 @@ void mapcmd_parse(maphandler_type mht, char *const *comp, int cs, bool *valid, b
 			args_size++;                                                         \
 			args = m_realloc(args, sizeof(maparg_st) * args_size);               \
 			args[args_size - 1] = ma;                                            \
+		} while (false)
+
+	#define DONE()  do {           \
+			mc->type = mct;        \
+			mc->size = args_size;  \
+			mc->args = args;       \
+			*valid = true;         \
+			return;                \
 		} while (false)
 
 	int mht_mask = 0;
@@ -932,10 +941,8 @@ void mapcmd_parse(maphandler_type mht, char *const *comp, int cs, bool *valid, b
 				MA_VAL_HIGHCC | MA_VAL_RPN | MA_RAWDATA;
 			for (int i = 1; i < cs; i++)
 				ADD_ARG(comp[i], mask);
-			mc->type = MC_PRINT;
-			mc->size = args_size;
-			mc->args = args;
-		} return;
+			DONE();
+		};
 		case MC_SENDCOPY:
 			TODO("MC_SENDCOPY");
 			break;
@@ -944,7 +951,10 @@ void mapcmd_parse(maphandler_type mht, char *const *comp, int cs, bool *valid, b
 				fprintf(stderr, "Invalid format for SendNote command\n");
 				return;
 			}
-			return;
+			ADD_ARG(comp[1], MA_VAL_NUM | MA_CHANNEL);
+			ADD_ARG(comp[2], MA_VAL_NOTE | MA_NOTE);
+			ADD_ARG(comp[3], MA_VAL_NUM | MA_VELOCITY);
+			DONE();
 		case MC_SENDBEND:
 			TODO("MC_SENDBEND");
 			break;
@@ -979,17 +989,15 @@ void mapcmd_parse(maphandler_type mht, char *const *comp, int cs, bool *valid, b
 			TODO("MC_SENDRESET");
 			break;
 	}
-	return;
-
 	fail:
 	for (int i = 0; i < args_size; i++){
 		if (args[i].type == MA_VAL_STR)
 			free(args[i].val.str);
 	}
 	free(args);
-
 	#undef TODO
 	#undef ADD_ARG
+	#undef DONE
 }
 
 void mapfile_free(mapfile mf){
@@ -1025,6 +1033,7 @@ mapfile mapfile_parse(const char *file){
 	while (!feof(fp)){
 		char line[2000];
 		char *comp[11];
+		line[0] = 0;
 		fgets(line, sizeof(line), fp);
 		switch (state){
 			case ST_START: {
@@ -1074,6 +1083,15 @@ int main(int argc, char **argv){
 	int result = 0;
 	bool init_midi = false;
 	bool init_out = false;
+	#define MAX_SOURCES 100
+	int srcs_size = 0;
+	struct {
+		MIDIEndpointRef ep;
+		const char *name;
+		int i;
+		int size;
+		mapfile *mfs;
+	} srcs[MAX_SOURCES];
 
 	// print version and copyright
 	printf(
@@ -1313,13 +1331,6 @@ int main(int argc, char **argv){
 	}
 
 	// list sources
-	#define MAX_SOURCES 100
-	int srcs_size = 0;
-	struct {
-		MIDIEndpointRef ep;
-		const char *name;
-		int i;
-	} srcs[MAX_SOURCES];
 	{
 		int len = MIDIGetNumberOfSources();
 		if (len > MAX_SOURCES){
@@ -1339,6 +1350,8 @@ int main(int argc, char **argv){
 			srcs[si].ep = src;
 			srcs[si].i = i + 1;
 			srcs[si].name = NULL;
+			srcs[si].size = 0;
+			srcs[si].mfs = NULL;
 			CFStringRef name = nil;
 			if (MIDIObjectGetStringProperty(src, kMIDIPropertyDisplayName, &name) == 0 &&
 				name != nil){
@@ -1381,6 +1394,10 @@ int main(int argc, char **argv){
 				result = 1;
 				goto cleanup;
 			}
+			// add it to the device
+			srcs[srci].size++;
+			srcs[srci].mfs = m_realloc(srcs[srci].mfs, sizeof(mapfile) * srcs[srci].size);
+			srcs[srci].mfs[srcs[srci].size - 1] = mf;
 		}
 	}
 
@@ -1437,6 +1454,11 @@ int main(int argc, char **argv){
 	}
 
 	cleanup:
+	for (int i = 0; i < srcs_size; i++){
+		for (int j = 0; j < srcs[i].size; j++)
+			mapfile_free(srcs[i].mfs[j]);
+		m_free(srcs[i].mfs);
+	}
 	if (init_out)
 		MIDIEndpointDispose(midiout);
 	if (init_midi)
