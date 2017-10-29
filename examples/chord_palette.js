@@ -28,7 +28,7 @@ function nameof(note){
 console.log('# (c) Copyright 2017 Sean Connelly (@voidqk) http://syntheti.cc');
 console.log('# MIT License');
 console.log('# Project Home: https://github.com/voidqk/midimap');
-for (var oct = 1; oct <= 4; oct++){
+for (var oct = 0; oct <= 6; oct++){
 	for (var n = 0; n < 12; n++){
 		console.log('');
 		console.log('OnNote Any ' + names[n] + oct + ' Any');
@@ -41,3 +41,8 @@ for (var oct = 1; oct <= 4; oct++){
 		console.log('End');
 	}
 }
+
+console.log('');
+console.log('OnElse');
+console.log('\tSendCopy');
+console.log('End');
