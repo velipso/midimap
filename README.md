@@ -79,6 +79,21 @@ End
 
 OnElse
   # anything else, pass it along
+  SendCopy
+End
+```
+
+### Convert mod wheel to pitch bend
+
+```
+OnHighCC Any ControlMod Any
+  # convert to pitch bend
+  SendBend Channel Value
+End
+
+OnElse
+  # anything else, pass it along
+  SendCopy
 End
 ```
 
