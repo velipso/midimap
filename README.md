@@ -218,7 +218,7 @@ Map Files:
   Commands:
     Print "Message", "Another", ...              Print values to console
       (`Print RawData` will print the raw bytes received in hexadecimal)
-    SendCopy                                         Send a copy of the message
+    SendCopy                                     Send a copy of the message
     SendNote         <Channel> <Note> <Velocity>
       (Use 0 for Velocity to send note off)
     SendBend         <Channel> <Bend>
