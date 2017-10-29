@@ -109,8 +109,8 @@ Map Files:
 
     OnNote 1 NoteGb3 Any
       # Change the Gb3 to a C4
-      Print "Received:" Channel Note Velocity
-      SendNote 16 NoteC4 Velocity
+      Print "Received:" Channel Note Value
+      SendNote 16 NoteC4 Value
     End
 
   For this example, if the input device sends a Gb3 message at any velocity in
@@ -121,8 +121,7 @@ Map Files:
   for the message.  Criteria can be a literal value, `Any` which matches
   anything, or `Positive` for a number greater than zero.  Inside the handler,
   the instructions are executed in order using raw values ("Received:", 16,
-  NoteC4) or values dependant on the original message (Channel, Note,
-  Velocity).
+  NoteC4) or values dependant on the original message (Channel, Note, Value).
 
   Any line that begins with a `#` is ignored and considered a comment.
 
@@ -145,15 +144,21 @@ Map Files:
 
   Parameters:
     Channel   MIDI Channel (1-16)
+    Value     Data value associated with event (see details below)
     Note      Note value (see details below)
-    Velocity  How hard the note was hit (0-127) Use 0 for note off
-    Bend      Amount to bend (0-16383, center at 8192)
-    Pressure  Aftertouch intensity (0-127)
-    Patch     Patch being selected (0-127)
     Control   Control being modified (see table below)
-    Value     Value for the control (LowCC: 0-127, HighCC/RPN/NRPN: 0-16383)
     RPN       Registered parameter being modified (see table below)
     NRPN      Non-registered parameter being modified (0-16383)
+
+  "Value" is a number that depends on the event:
+    OnNote          Velocity the note was hit (0-127) Use 0 for note off
+    OnBend          Amount to bend (0-16383, center at 8192)
+    OnNotePressure  Aftertouch intensity (0-127)
+    OnChanPressure  Aftertouch intensity (0-127)
+    OnPatch         Patch being selected (0-127)
+    OnLowCC         Value for the control (0-127)
+    OnHighCC        Value for the control (0-16383)
+    OnRPN/OnNRPN    Value for the parameter (0-16383)
 
   Notes:
     Notes are represented in the format of:
@@ -219,12 +224,12 @@ Map Files:
     Print "Message", "Another", ...              Print values to console
       (`Print RawData` will print the raw bytes received in hexadecimal)
     SendCopy                                     Send a copy of the message
-    SendNote         <Channel> <Note> <Velocity>
-      (Use 0 for Velocity to send note off)
-    SendBend         <Channel> <Bend>
-    SendNotePressure <Channel> <Note> <Pressure>
-    SendChanPressure <Channel> <Pressure>
-    SendPatch        <Channel> <Patch>
+    SendNote         <Channel> <Note> <Value>
+      (Use 0 for Value to send note off)
+    SendBend         <Channel> <Value>
+    SendNotePressure <Channel> <Note> <Value>
+    SendChanPressure <Channel> <Value>
+    SendPatch        <Channel> <Value>
     SendLowCC        <Channel> <Control> <Value>
     SendHighCC       <Channel> <Control> <Value>
     SendRPN          <Channel> <RPN> <Value>

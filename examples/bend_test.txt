@@ -7,6 +7,6 @@
 #
 
 OnBend Any Any
-	Print Channel Bend RawData
-	SendBend Channel Bend
+	Print Channel Value RawData
+	SendBend Channel Value
 End

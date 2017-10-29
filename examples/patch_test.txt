@@ -7,6 +7,6 @@
 #
 
 OnPatch Any Any
-	Print Channel Patch
-	SendPatch Channel Patch
+	Print Channel Value
+	SendPatch Channel Value
 End

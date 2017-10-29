@@ -30,15 +30,18 @@ console.log('# MIT License');
 console.log('# Project Home: https://github.com/voidqk/midimap');
 for (var oct = 0; oct <= 6; oct++){
 	for (var n = 0; n < 12; n++){
-		console.log('');
-		console.log('OnNote Any ' + names[n] + oct + ' Any');
-		console.log('\tPrint "' + print[n] + '"');
-		console.log('\tSendNote Channel ' +
-			nameof(noteroot + bass[n] - 12) + ' Velocity  # Bass Note');
-		for (var i = 0; i < notes[n].length; i++)
-			console.log('\tSendNote Channel ' + nameof(noteroot + notes[n][i]) + ' Velocity');
+		for (var p = 0; p < 2; p++){
+			console.log('');
+			console.log('OnNote Any ' + names[n] + oct + ' ' + (p == 0 ? '0' : 'Positive'));
+			if (p > 0)
+				console.log('\tPrint "' + print[n] + '"');
+			console.log('\tSendNote Channel ' +
+				nameof(noteroot + bass[n] - 12) + ' Value  # Bass Note');
+			for (var i = 0; i < notes[n].length; i++)
+				console.log('\tSendNote Channel ' + nameof(noteroot + notes[n][i]) + ' Value');
+			console.log('End');
+		}
 		notes[n].push(notes[n].shift() + 12);
-		console.log('End');
 	}
 }
 

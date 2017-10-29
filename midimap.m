@@ -391,15 +391,11 @@ typedef enum {
 	MA_VAL_RPN    = 1 <<  5,
 	MA_RAWDATA    = 1 <<  6,
 	MA_CHANNEL    = 1 <<  7,
-	MA_NOTE       = 1 <<  8,
-	MA_VELOCITY   = 1 <<  9,
-	MA_BEND       = 1 << 10,
-	MA_PRESSURE   = 1 << 11,
-	MA_PATCH      = 1 << 12,
-	MA_CONTROL    = 1 << 13,
-	MA_VALUE      = 1 << 14,
-	MA_RPN        = 1 << 15,
-	MA_NRPN       = 1 << 16
+	MA_VALUE      = 1 <<  8,
+	MA_NOTE       = 1 <<  9,
+	MA_CONTROL    = 1 << 10,
+	MA_RPN        = 1 << 11,
+	MA_NRPN       = 1 << 12
 } maparg_type;
 
 typedef struct {
@@ -592,14 +588,12 @@ void midisend(int size, const uint8_t *data){
 typedef struct {
 	int channel;
 	int note;
-	int velocity;
-	int bend;
-	int pressure;
-	int patch;
 	bool cclow; // is Control a lowcc?
 	lowcc_type lowcc;
 	highcc_type highcc;
-	int value;
+	int pvalue; // print value
+	int hvalue; // 14-bit value
+	int lvalue; // 7-bit value
 	rpn_type rpn;
 	int nrpn;
 } cmdctx;
@@ -629,15 +623,11 @@ void mapcmds_exe(int size, mapcmd_st *cmds, cmdctx ctx, int dsize, const uint8_t
 							break;
 						case MA_CHANNEL   : printf("%d", ctx.channel);                 break;
 						case MA_NOTE      : printf("%s", note_name(ctx.note));         break;
-						case MA_VELOCITY  : printf("%d", ctx.velocity);                break;
-						case MA_BEND      : printf("%d", ctx.bend);                    break;
-						case MA_PRESSURE  : printf("%d", ctx.pressure);                break;
-						case MA_PATCH     : printf("%d", ctx.patch);                   break;
+						case MA_VALUE     : printf("%d", ctx.pvalue);                  break;
 						case MA_CONTROL:
 							printf("%s",
 								ctx.cclow ? lowcc_name(ctx.lowcc) : highcc_name(ctx.highcc));
 							break;
-						case MA_VALUE     : printf("%d", ctx.value);                   break;
 						case MA_RPN       : printf("%s", rpn_name(ctx.rpn));           break;
 						case MA_NRPN      : printf("%d", ctx.nrpn);                    break;
 					}
@@ -650,7 +640,7 @@ void mapcmds_exe(int size, mapcmd_st *cmds, cmdctx ctx, int dsize, const uint8_t
 			case MC_SENDNOTE: {
 				int channel = cmd->args[0].type == MA_VAL_NUM ? cmd->args[0].val.num : ctx.channel;
 				int note = cmd->args[1].type == MA_VAL_NOTE ? cmd->args[1].val.note : ctx.note;
-				int vel = cmd->args[2].type == MA_VAL_NUM ? cmd->args[2].val.num : ctx.velocity;
+				int vel = cmd->args[2].type == MA_VAL_NUM ? cmd->args[2].val.num : ctx.lvalue;
 				send[0] = (vel == 0 ? 0x80 : 0x90) | (channel - 1);
 				send[1] = note;
 				send[2] = vel;
@@ -658,7 +648,7 @@ void mapcmds_exe(int size, mapcmd_st *cmds, cmdctx ctx, int dsize, const uint8_t
 			} break;
 			case MC_SENDBEND: {
 				int channel = cmd->args[0].type == MA_VAL_NUM ? cmd->args[0].val.num : ctx.channel;
-				int bend = cmd->args[1].type == MA_VAL_NUM ? cmd->args[1].val.num : ctx.bend;
+				int bend = cmd->args[1].type == MA_VAL_NUM ? cmd->args[1].val.num : ctx.hvalue;
 				send[0] = 0xE0 | (channel - 1);
 				send[1] = bend & 0x7F;
 				send[2] = (bend >> 7) & 0x7F;
@@ -672,7 +662,7 @@ void mapcmds_exe(int size, mapcmd_st *cmds, cmdctx ctx, int dsize, const uint8_t
 				break;
 			case MC_SENDPATCH: {
 				int channel = cmd->args[0].type == MA_VAL_NUM ? cmd->args[0].val.num : ctx.channel;
-				int patch = cmd->args[1].type == MA_VAL_NUM ? cmd->args[1].val.num : ctx.patch;
+				int patch = cmd->args[1].type == MA_VAL_NUM ? cmd->args[1].val.num : ctx.lvalue;
 				send[0] = 0xC0 | (channel - 1);
 				send[1] = patch;
 				midisend(2, send);
@@ -682,7 +672,7 @@ void mapcmds_exe(int size, mapcmd_st *cmds, cmdctx ctx, int dsize, const uint8_t
 				int control;
 				lowcc_midi(cmd->args[1].type == MA_VAL_LOWCC ? cmd->args[1].val.lowcc : ctx.lowcc,
 					&control);
-				int value = cmd->args[2].type == MA_VAL_NUM ? cmd->args[2].val.num : ctx.value;
+				int value = cmd->args[2].type == MA_VAL_NUM ? cmd->args[2].val.num : ctx.lvalue;
 				send[0] = 0xB0 | (channel - 1);
 				send[1] = control;
 				send[2] = value;
@@ -694,7 +684,7 @@ void mapcmds_exe(int size, mapcmd_st *cmds, cmdctx ctx, int dsize, const uint8_t
 				highcc_midi(
 					cmd->args[1].type == MA_VAL_HIGHCC ? cmd->args[1].val.highcc : ctx.highcc,
 					&control1, &control2);
-				int value = cmd->args[2].type == MA_VAL_NUM ? cmd->args[2].val.num : ctx.value;
+				int value = cmd->args[2].type == MA_VAL_NUM ? cmd->args[2].val.num : ctx.hvalue;
 				send[0] = 0xB0 | (channel - 1);
 				send[1] = control1;
 				send[2] = (value >> 7) & 0x7F;
@@ -753,8 +743,8 @@ void midimsg(int size, mapfile *mfs, maphandler_type type, cmdctx ctx, int dsize
 							mh->u.note.channel == ctx.channel) &&
 						(mh->u.note.note == -1 || mh->u.note.note == ctx.note) &&
 						(mh->u.note.velocity == -1 ||
-							(mh->u.note.velocity == -2 && ctx.velocity > 0) ||
-							mh->u.note.velocity == ctx.velocity)){
+							(mh->u.note.velocity == -2 && ctx.lvalue > 0) ||
+							mh->u.note.velocity == ctx.lvalue)){
 						mapcmds_exe(mh->size, mh->cmds, ctx, dsize, data);
 						return;
 					}
@@ -764,8 +754,8 @@ void midimsg(int size, mapfile *mfs, maphandler_type type, cmdctx ctx, int dsize
 							(mh->u.bend.channel == -2 && ctx.channel > 0) ||
 							mh->u.bend.channel == ctx.channel) &&
 						(mh->u.bend.bend == -1 ||
-							(mh->u.bend.bend == -2 && ctx.bend > 0) ||
-							mh->u.bend.bend == ctx.bend)){
+							(mh->u.bend.bend == -2 && ctx.hvalue > 0) ||
+							mh->u.bend.bend == ctx.hvalue)){
 						mapcmds_exe(mh->size, mh->cmds, ctx, dsize, data);
 						return;
 					}
@@ -781,8 +771,8 @@ void midimsg(int size, mapfile *mfs, maphandler_type type, cmdctx ctx, int dsize
 							(mh->u.patch.channel == -2 && ctx.channel > 0) ||
 							mh->u.patch.channel == ctx.channel) &&
 						(mh->u.patch.patch == -1 ||
-							(mh->u.patch.patch == -2 && ctx.patch > 0) ||
-							mh->u.patch.patch == ctx.patch)){
+							(mh->u.patch.patch == -2 && ctx.lvalue > 0) ||
+							mh->u.patch.patch == ctx.lvalue)){
 						mapcmds_exe(mh->size, mh->cmds, ctx, dsize, data);
 						return;
 					}
@@ -793,8 +783,8 @@ void midimsg(int size, mapfile *mfs, maphandler_type type, cmdctx ctx, int dsize
 							mh->u.lowcc.channel == ctx.channel) &&
 						(mh->u.lowcc.control == LCC__Any || mh->u.lowcc.control == ctx.lowcc) &&
 						(mh->u.lowcc.value == -1 ||
-							(mh->u.lowcc.value == -2 && ctx.value > 0) ||
-							mh->u.lowcc.value == ctx.value)){
+							(mh->u.lowcc.value == -2 && ctx.lvalue > 0) ||
+							mh->u.lowcc.value == ctx.lvalue)){
 						mapcmds_exe(mh->size, mh->cmds, ctx, dsize, data);
 						return;
 					}
@@ -805,8 +795,8 @@ void midimsg(int size, mapfile *mfs, maphandler_type type, cmdctx ctx, int dsize
 							mh->u.highcc.channel == ctx.channel) &&
 						(mh->u.highcc.control == HCC__Any || mh->u.highcc.control == ctx.highcc) &&
 						(mh->u.highcc.value == -1 ||
-							(mh->u.highcc.value == -2 && ctx.value > 0) ||
-							mh->u.highcc.value == ctx.value)){
+							(mh->u.highcc.value == -2 && ctx.hvalue > 0) ||
+							mh->u.highcc.value == ctx.hvalue)){
 						mapcmds_exe(mh->size, mh->cmds, ctx, dsize, data);
 						return;
 					}
@@ -858,6 +848,14 @@ typedef struct {
 	int cc[32];
 } midictx_st, *midictx;
 
+inline int ltoh(int low){
+	return (low << 7) | low;
+}
+
+inline int htol(int high){
+	return high >> 7;
+}
+
 void midiread(const MIDIPacketList *pkl, midictx mctx, void *dummy){
 	const MIDIPacket *p = &pkl->packet[0];
 	int mfs_size = mctx->size;
@@ -885,7 +883,9 @@ void midiread(const MIDIPacketList *pkl, midictx mctx, void *dummy){
 					midimsg(mfs_size, mfs, MH_NOTE, (cmdctx){
 						.channel = (p->data[mi] & 0x0F) + 1,
 						.note = p->data[mi + 1],
-						.velocity = 0
+						.pvalue = 0,
+						.lvalue = 0,
+						.hvalue = 0
 					}, 3, &p->data[mi]);
 					mi += 3;
 				} break;
@@ -898,7 +898,9 @@ void midiread(const MIDIPacketList *pkl, midictx mctx, void *dummy){
 					midimsg(mfs_size, mfs, MH_NOTE, (cmdctx){
 						.channel = (p->data[mi] & 0x0F) + 1,
 						.note = p->data[mi + 1],
-						.velocity = p->data[mi + 2]
+						.pvalue = p->data[mi + 2],
+						.lvalue = p->data[mi + 2],
+						.hvalue = ltoh(p->data[mi + 2])
 					}, 3, &p->data[mi]);
 					mi += 3;
 				} break;
@@ -911,7 +913,9 @@ void midiread(const MIDIPacketList *pkl, midictx mctx, void *dummy){
 					midimsg(mfs_size, mfs, MH_NOTEPRESSURE, (cmdctx){
 						.channel = (p->data[mi] & 0x0F) + 1,
 						.note = p->data[mi + 1],
-						.pressure = p->data[mi + 2]
+						.pvalue = p->data[mi + 2],
+						.lvalue = p->data[mi + 2],
+						.hvalue = ltoh(p->data[mi + 2])
 					}, 3, &p->data[mi]);
 					mi += 3;
 				} break;
@@ -946,7 +950,9 @@ void midiread(const MIDIPacketList *pkl, midictx mctx, void *dummy){
 							.channel = (p->data[mi] & 0x0F) + 1,
 							.cclow = true,
 							.lowcc = lowcc,
-							.value = p->data[mi + 2]
+							.pvalue = p->data[mi + 2],
+							.lvalue = p->data[mi + 2],
+							.hvalue = ltoh(p->data[mi + 2])
 						}, 3, &p->data[mi]);
 					}
 					else if (highcc_frommidi(p->data[mi + 1], &highcc, &msb, &index)){
@@ -959,7 +965,9 @@ void midiread(const MIDIPacketList *pkl, midictx mctx, void *dummy){
 							.channel = (p->data[mi] & 0x0F) + 1,
 							.cclow = false,
 							.highcc = highcc,
-							.value = mctx->cc[index]
+							.pvalue = mctx->cc[index],
+							.lvalue = htol(mctx->cc[index]),
+							.hvalue = mctx->cc[index]
 						}, 3, &p->data[mi]);
 					}
 					mi += 3;
@@ -972,7 +980,9 @@ void midiread(const MIDIPacketList *pkl, midictx mctx, void *dummy){
 					}
 					midimsg(mfs_size, mfs, MH_PATCH, (cmdctx){
 						.channel = (p->data[mi] & 0x0F) + 1,
-						.patch = p->data[mi + 1]
+						.pvalue = p->data[mi + 1],
+						.lvalue = p->data[mi + 1],
+						.hvalue = ltoh(p->data[mi + 1])
 					}, 2, &p->data[mi]);
 					mi += 2;
 				} break;
@@ -984,7 +994,9 @@ void midiread(const MIDIPacketList *pkl, midictx mctx, void *dummy){
 					}
 					midimsg(mfs_size, mfs, MH_CHANPRESSURE, (cmdctx){
 						.channel = (p->data[mi] & 0x0F) + 1,
-						.pressure = p->data[mi + 1]
+						.pvalue = p->data[mi + 1],
+						.lvalue = p->data[mi + 1],
+						.hvalue = ltoh(p->data[mi + 1])
 					}, 2, &p->data[mi]);
 					mi += 2;
 				} break;
@@ -994,9 +1006,12 @@ void midiread(const MIDIPacketList *pkl, midictx mctx, void *dummy){
 						mi += 3;
 						break;
 					}
+					int bend = (((int)p->data[mi + 2])) << 7 | ((int)p->data[mi + 1]);
 					midimsg(mfs_size, mfs, MH_BEND, (cmdctx){
 						.channel = (p->data[mi] & 0x0F) + 1,
-						.bend = (((int)p->data[mi + 2])) << 7 | ((int)p->data[mi + 1])
+						.pvalue = bend,
+						.lvalue = htol(bend),
+						.hvalue = bend
 					}, 3, &p->data[mi]);
 					mi += 3;
 				} break;
@@ -1172,10 +1187,6 @@ bool maparg_parse(const char *str, int allow_mask, maparg_st *ma){
 	LITERAL(MA_RAWDATA , "RawData" )
 	LITERAL(MA_CHANNEL , "Channel" )
 	LITERAL(MA_NOTE    , "Note"    )
-	LITERAL(MA_VELOCITY, "Velocity")
-	LITERAL(MA_BEND    , "Bend"    )
-	LITERAL(MA_PRESSURE, "Pressure")
-	LITERAL(MA_PATCH   , "Patch"   )
 	LITERAL(MA_CONTROL , "Control" )
 	LITERAL(MA_VALUE   , "Value"   )
 	LITERAL(MA_RPN     , "RPN"     )
@@ -1439,11 +1450,11 @@ void mapcmd_parse(maphandler_type mht, char *const *comp, int cs, bool *valid, b
 
 	int mht_mask = 0;
 	switch (mht){
-		case MH_NOTE        : mht_mask = MA_CHANNEL | MA_NOTE | MA_VELOCITY; break;
-		case MH_BEND        : mht_mask = MA_CHANNEL | MA_BEND              ; break;
-		case MH_NOTEPRESSURE: mht_mask = MA_CHANNEL | MA_NOTE | MA_PRESSURE; break;
-		case MH_CHANPRESSURE: mht_mask = MA_CHANNEL | MA_PRESSURE          ; break;
-		case MH_PATCH       : mht_mask = MA_CHANNEL | MA_PATCH             ; break;
+		case MH_NOTE        : mht_mask = MA_CHANNEL | MA_NOTE | MA_VALUE   ; break;
+		case MH_BEND        : mht_mask = MA_CHANNEL | MA_VALUE             ; break;
+		case MH_NOTEPRESSURE: mht_mask = MA_CHANNEL | MA_NOTE | MA_VALUE   ; break;
+		case MH_CHANPRESSURE: mht_mask = MA_CHANNEL | MA_VALUE             ; break;
+		case MH_PATCH       : mht_mask = MA_CHANNEL | MA_VALUE             ; break;
 		case MH_LOWCC       : mht_mask = MA_CHANNEL | MA_CONTROL | MA_VALUE; break;
 		case MH_HIGHCC      : mht_mask = MA_CHANNEL | MA_CONTROL | MA_VALUE; break;
 		case MH_RPN         : mht_mask = MA_CHANNEL | MA_RPN | MA_VALUE    ; break;
@@ -1506,7 +1517,7 @@ void mapcmd_parse(maphandler_type mht, char *const *comp, int cs, bool *valid, b
 			ADD_ARG(comp[1], MA_VAL_NUM | MA_CHANNEL);
 			CHECK_RANGE(1, 16);
 			ADD_ARG(comp[2], MA_VAL_NOTE | MA_NOTE);
-			ADD_ARG(comp[3], MA_VAL_NUM | MA_VELOCITY);
+			ADD_ARG(comp[3], MA_VAL_NUM | MA_VALUE);
 			CHECK_RANGE(0, 127);
 			DONE();
 		case MC_SENDBEND:
@@ -1517,7 +1528,7 @@ void mapcmd_parse(maphandler_type mht, char *const *comp, int cs, bool *valid, b
 			mht_mask |= MA_VAL_NUM;
 			ADD_ARG(comp[1], MA_VAL_NUM | MA_CHANNEL);
 			CHECK_RANGE(1, 16);
-			ADD_ARG(comp[2], MA_VAL_NUM | MA_BEND);
+			ADD_ARG(comp[2], MA_VAL_NUM | MA_VALUE);
 			CHECK_RANGE(0, 16383);
 			DONE();
 		case MC_SENDNOTEPRESSURE:
@@ -1534,7 +1545,7 @@ void mapcmd_parse(maphandler_type mht, char *const *comp, int cs, bool *valid, b
 			mht_mask |= MA_VAL_NUM;
 			ADD_ARG(comp[1], MA_VAL_NUM | MA_CHANNEL);
 			CHECK_RANGE(1, 16);
-			ADD_ARG(comp[2], MA_VAL_NUM | MA_PATCH);
+			ADD_ARG(comp[2], MA_VAL_NUM | MA_VALUE);
 			CHECK_RANGE(0, 127);
 			DONE();
 		case MC_SENDLOWCC:
@@ -1765,8 +1776,8 @@ int main(int argc, char **argv){
 			"\n"
 			"    OnNote 1 NoteGb3 Any\n"
 			"      # Change the Gb3 to a C4\n"
-			"      Print \"Received:\" Channel Note Velocity\n"
-			"      SendNote 16 NoteC4 Velocity\n"
+			"      Print \"Received:\" Channel Note Value\n"
+			"      SendNote 16 NoteC4 Value\n"
 			"    End\n"
 			"\n"
 			"  For this example, if the input device sends a Gb3 message at any velocity in\n"
@@ -1777,19 +1788,18 @@ int main(int argc, char **argv){
 			"  for the message.  Criteria can be a literal value, `Any` which matches\n"
 			"  anything, or `Positive` for a number greater than zero.  Inside the handler,\n"
 			"  the instructions are executed in order using raw values (\"Received:\", 16,\n"
-			"  NoteC4) or values dependant on the original message (Channel, Note,\n"
-			"  Velocity).\n"
+			"  NoteC4) or values dependant on the original message (Channel, Note, Value).\n"
 			"\n"
 			"  Any line that begins with a `#` is ignored and considered a comment.\n"
 			"\n"
 			"  All event handlers end with `End`.\n"
 			"\n"
 			"  Event Handlers:\n"
-			"    OnNote         <Channel> <Note> <Velocity>  Note is hit or released\n"
-			"    OnBend         <Channel> <Bend>             Pitch bend for entire channel\n"
-			"    OnNotePressure <Channel> <Note> <Pressure>  Aftertouch applied to note\n"
-			"    OnChanPressure <Channel> <Pressure>         Aftertouch for entire channel\n"
-			"    OnPatch        <Channel> <Patch>            Program change patch\n"
+			"    OnNote         <Channel> <Note> <Value>     Note is hit or released\n"
+			"    OnBend         <Channel> <Value>            Pitch bend for entire channel\n"
+			"    OnNotePressure <Channel> <Note> <Value>     Aftertouch applied to note\n"
+			"    OnChanPressure <Channel> <Value>            Aftertouch for entire channel\n"
+			"    OnPatch        <Channel> <Value>            Program change patch\n"
 			"    OnLowCC        <Channel> <Control> <Value>  Low-res control change\n"
 			"    OnHighCC       <Channel> <Control> <Value>  High-res control change\n"
 			"    OnRPN          <Channel> <RPN> <Value>      Registered device parameter\n"
@@ -1801,15 +1811,21 @@ int main(int argc, char **argv){
 			"\n"
 			"  Parameters:\n"
 			"    Channel   MIDI Channel (1-16)\n"
+			"    Value     Data value associated with event (see details below)\n"
 			"    Note      Note value (see details below)\n"
-			"    Velocity  How hard the note was hit (0-127) Use 0 for note off\n"
-			"    Bend      Amount to bend (0-16383, center at 8192)\n"
-			"    Pressure  Aftertouch intensity (0-127)\n"
-			"    Patch     Patch being selected (0-127)\n"
 			"    Control   Control being modified (see table below)\n"
-			"    Value     Value for the control (LowCC: 0-127, HighCC/RPN/NRPN: 0-16383)\n"
 			"    RPN       Registered parameter being modified (see table below)\n"
 			"    NRPN      Non-registered parameter being modified (0-16383)\n"
+			"\n"
+			"  \"Value\" is a number that depends on the event:\n"
+			"    OnNote          Velocity the note was hit (0-127) Use 0 for note off\n"
+			"    OnBend          Amount to bend (0-16383, center at 8192)\n"
+			"    OnNotePressure  Aftertouch intensity (0-127)\n"
+			"    OnChanPressure  Aftertouch intensity (0-127)\n"
+			"    OnPatch         Patch being selected (0-127)\n"
+			"    OnLowCC         Value for the control (0-127)\n"
+			"    OnHighCC        Value for the control (0-16383)\n"
+			"    OnRPN/OnNRPN    Value for the parameter (0-16383)\n"
 			"\n"
 			"  Notes:\n"
 			"    Notes are represented in the format of:\n"
@@ -1875,12 +1891,12 @@ int main(int argc, char **argv){
 			"    Print \"Message\", \"Another\", ...              Print values to console\n"
 			"      (`Print RawData` will print the raw bytes received in hexadecimal)\n"
 			"    SendCopy                                         Send a copy of the message\n"
-			"    SendNote         <Channel> <Note> <Velocity>\n"
-			"      (Use 0 for Velocity to send note off)\n"
-			"    SendBend         <Channel> <Bend>\n"
-			"    SendNotePressure <Channel> <Note> <Pressure>\n"
-			"    SendChanPressure <Channel> <Pressure>\n"
-			"    SendPatch        <Channel> <Patch>\n"
+			"    SendNote         <Channel> <Note> <Value>\n"
+			"      (Use 0 for Value to send note off)\n"
+			"    SendBend         <Channel> <Value>\n"
+			"    SendNotePressure <Channel> <Note> <Value>\n"
+			"    SendChanPressure <Channel> <Value>\n"
+			"    SendPatch        <Channel> <Value>\n"
 			"    SendLowCC        <Channel> <Control> <Value>\n"
 			"    SendHighCC       <Channel> <Control> <Value>\n"
 			"    SendRPN          <Channel> <RPN> <Value>\n"
