@@ -564,6 +564,7 @@ MIDIEndpointRef midiout;
 MIDITimeStamp tsnow;
 
 void midisend(int size, const uint8_t *data){
+	//printf("send:"); for (int i = 0; i < size; i++) printf(" %02X", data[i]); printf("\n");
 	static uint8_t buffer[1000];
 	MIDIPacketList *pkl = (MIDIPacketList *)buffer;
 	MIDIPacket *pk = MIDIPacketListInit(pkl);
@@ -640,9 +641,14 @@ void mapcmds_exe(int size, mapcmd_st *cmds, cmdctx ctx, int dsize, const uint8_t
 				send[2] = vel;
 				midisend(3, send);
 			} break;
-			case MC_SENDBEND:
-				TODO("MC_SENDBEND");
-				break;
+			case MC_SENDBEND: {
+				int channel = cmd->args[0].type == MA_VAL_NUM ? cmd->args[0].val.num : ctx.channel;
+				int bend = cmd->args[1].type == MA_VAL_NUM ? cmd->args[1].val.num : ctx.bend;
+				send[0] = 0xE0 | (channel - 1);
+				send[1] = bend & 0x7F;
+				send[2] = (bend >> 7) & 0x7F;
+				midisend(3, send);
+			} break;
 			case MC_SENDNOTEPRESSURE:
 				TODO("MC_SENDNOTEPRESSURE");
 				break;
@@ -711,7 +717,15 @@ void midimsg(int size, mapfile *mfs, maphandler_type type, cmdctx ctx, int dsize
 					}
 					break;
 				case MH_BEND:
-					TODO("MH_BEND")
+					if ((mh->u.bend.channel == -1 ||
+							(mh->u.bend.channel == -2 && ctx.channel > 0) ||
+							mh->u.bend.channel == ctx.channel) &&
+						(mh->u.bend.bend == -1 ||
+							(mh->u.bend.bend == -2 && ctx.bend > 0) ||
+							mh->u.bend.bend == ctx.bend)){
+						mapcmds_exe(mh->size, mh->cmds, ctx, dsize, data);
+						return;
+					}
 					break;
 				case MH_NOTEPRESSURE:
 					TODO("MH_NOTEPRESSURE")
@@ -1123,9 +1137,26 @@ void maphandler_parse(char *const *comp, int cs, bool *valid, bool *found, mapha
 			mh->u.note.note = note;
 			mh->u.note.velocity = velocity;
 		} return;
-		case MH_BEND:
-			TODO("MH_BEND");
-			break;
+		case MH_BEND: {
+			if (cs != 3){
+				fprintf(stderr, "Invalid format for OnBend handler\n");
+				return;
+			}
+			int channel = anyint(comp[1]);
+			if (channel < -2){
+				fprintf(stderr, "Invalid channel for OnBend handler: %s\n", comp[1]);
+				return;
+			}
+			int bend = anyint(comp[2]);
+			if (bend < -2){
+				fprintf(stderr, "Invalid value for OnBend handler: %s\n", comp[2]);
+				return;
+			}
+			*valid = true;
+			mh->type = MH_BEND;
+			mh->u.bend.channel = channel;
+			mh->u.bend.bend = bend;
+		} return;
 		case MH_NOTEPRESSURE:
 			TODO("MH_NOTEPRESSURE");
 			break;
@@ -1296,6 +1327,7 @@ void mapcmd_parse(maphandler_type mht, char *const *comp, int cs, bool *valid, b
 		case MC_PRINT: {
 			int mask = mht_mask | MA_VAL_NUM | MA_VAL_STR | MA_VAL_NOTE | MA_VAL_LOWCC |
 				MA_VAL_HIGHCC | MA_VAL_RPN | MA_RAWDATA;
+			mht_mask = mask;
 			for (int i = 1; i < cs; i++)
 				ADD_ARG(comp[i], mask);
 			DONE();
@@ -1319,8 +1351,16 @@ void mapcmd_parse(maphandler_type mht, char *const *comp, int cs, bool *valid, b
 			CHECK_RANGE(0, 127);
 			DONE();
 		case MC_SENDBEND:
-			TODO("MC_SENDBEND");
-			break;
+			if (cs != 3){
+				fprintf(stderr, "Invalid format for SendBend command\n");
+				return;
+			}
+			mht_mask |= MA_VAL_NUM;
+			ADD_ARG(comp[1], MA_VAL_NUM | MA_CHANNEL);
+			CHECK_RANGE(1, 16);
+			ADD_ARG(comp[2], MA_VAL_NUM | MA_BEND);
+			CHECK_RANGE(0, 16383);
+			DONE();
 		case MC_SENDNOTEPRESSURE:
 			TODO("MC_SENDNOTEPRESSURE");
 			break;
