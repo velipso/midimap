@@ -10,15 +10,15 @@ Example Use Cases
 
 ```
 OnNote Any NoteC3 Any
-	# if a C3 is hit, then send a C3+E3+G3
-	SendNote Channel NoteC3 Velocity
-	SendNote Channel NoteE3 Velocity
-	SendNote Channel NoteG3 Velocity
+  # if a C3 is hit, then send a C3+E3+G3
+  SendNote Channel NoteC3 Velocity
+  SendNote Channel NoteE3 Velocity
+  SendNote Channel NoteG3 Velocity
 End
 
 OnElse
-	# if anything else is hit, pass it along
-	SendCopy
+  # if anything else is hit, pass it along
+  SendCopy
 End
 ```
 
@@ -26,18 +26,18 @@ End
 
 ```
 OnNote Any NoteC3 0
-	# if C3 is released, release the pedal
-	SendLowCC Channel ControlPedal 0
+  # if C3 is released, release the pedal
+  SendLowCC Channel ControlPedal 0
 End
 
 OnNote Any NoteC3 Positive
-	# if C3 is hit, hit the pedal
-	SendLowCC Channel ControlPedal 127
+  # if C3 is hit, hit the pedal
+  SendLowCC Channel ControlPedal 127
 End
 
 OnElse
-	# anything else, pass it along
-	SendCopy
+  # anything else, pass it along
+  SendCopy
 End
 ```
 
@@ -45,12 +45,12 @@ End
 
 ```
 OnReset Any
-	# do nothing
+  # do nothing
 End
 
 OnElse
-	# anything else, pass it along
-	SendCopy
+  # anything else, pass it along
+  SendCopy
 End
 ```
 
@@ -58,14 +58,14 @@ End
 
 ```
 OnNote Any Any Positive
-	# spy on all note hit events and print them
-	Print "HIT:" Note Velocity
-	SendCopy
+  # spy on all note hit events and print them
+  Print "HIT:" Note Velocity
+  SendCopy
 End
 
 OnElse
-	# anything else, pass it along
-	SendCopy
+  # anything else, pass it along
+  SendCopy
 End
 ```
 
