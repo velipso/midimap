@@ -713,15 +713,27 @@ void mapcmds_exe(int size, mapcmd_st *cmds, cmdctx ctx, int dsize, const uint8_t
 			case MC_SENDNRPN:
 				TODO("MC_SENDNRPN");
 				break;
-			case MC_SENDALLSOUNDOFF:
-				TODO("MC_SENDALLSOUNDOFF");
-				break;
-			case MC_SENDALLNOTESOFF:
-				TODO("MC_SENDALLNOTESOFF");
-				break;
-			case MC_SENDRESET:
-				TODO("MC_SENDRESET");
-				break;
+			case MC_SENDALLSOUNDOFF: {
+				int channel = cmd->args[0].type == MA_VAL_NUM ? cmd->args[0].val.num : ctx.channel;
+				send[0] = 0xB0 | (channel - 1);
+				send[1] = 0x78;
+				send[2] = 0x00;
+				midisend(3, send);
+			} break;
+			case MC_SENDALLNOTESOFF: {
+				int channel = cmd->args[0].type == MA_VAL_NUM ? cmd->args[0].val.num : ctx.channel;
+				send[0] = 0xB0 | (channel - 1);
+				send[1] = 0x7B;
+				send[2] = 0x00;
+				midisend(3, send);
+			} break;
+			case MC_SENDRESET: {
+				int channel = cmd->args[0].type == MA_VAL_NUM ? cmd->args[0].val.num : ctx.channel;
+				send[0] = 0xB0 | (channel - 1);
+				send[1] = 0x79;
+				send[2] = 0x00;
+				midisend(3, send);
+			} break;
 		}
 	}
 }
@@ -806,13 +818,28 @@ void midimsg(int size, mapfile *mfs, maphandler_type type, cmdctx ctx, int dsize
 					TODO("MH_NRPN")
 					break;
 				case MH_ALLSOUNDOFF:
-					TODO("MH_ALLSOUNDOFF")
+					if ((mh->u.allsoundoff.channel == -1 ||
+							(mh->u.allsoundoff.channel == -2 && ctx.channel > 0) ||
+							mh->u.allsoundoff.channel == ctx.channel)){
+						mapcmds_exe(mh->size, mh->cmds, ctx, dsize, data);
+						return;
+					}
 					break;
 				case MH_ALLNOTESOFF:
-					TODO("MH_ALLNOTESOFF")
+					if ((mh->u.allnotesoff.channel == -1 ||
+							(mh->u.allnotesoff.channel == -2 && ctx.channel > 0) ||
+							mh->u.allnotesoff.channel == ctx.channel)){
+						mapcmds_exe(mh->size, mh->cmds, ctx, dsize, data);
+						return;
+					}
 					break;
 				case MH_RESET:
-					TODO("MH_RESET")
+					if ((mh->u.reset.channel == -1 ||
+							(mh->u.reset.channel == -2 && ctx.channel > 0) ||
+							mh->u.reset.channel == ctx.channel)){
+						mapcmds_exe(mh->size, mh->cmds, ctx, dsize, data);
+						return;
+					}
 					break;
 				case MH_ELSE:
 					mapcmds_exe(mh->size, mh->cmds, ctx, dsize, data);
@@ -898,7 +925,22 @@ void midiread(const MIDIPacketList *pkl, midictx mctx, void *dummy){
 					highcc_type highcc;
 					bool msb;
 					int index;
-					if (lowcc_frommidi(p->data[mi + 1], &lowcc)){
+					if (p->data[mi + 1] == 0x78){ // All Sound Off
+						midimsg(mfs_size, mfs, MH_ALLSOUNDOFF, (cmdctx){
+							.channel = (p->data[mi] & 0x0F) + 1
+						}, 3, &p->data[mi]);
+					}
+					else if (p->data[mi + 1] == 0x7B){ // All Notes Off
+						midimsg(mfs_size, mfs, MH_ALLNOTESOFF, (cmdctx){
+							.channel = (p->data[mi] & 0x0F) + 1
+						}, 3, &p->data[mi]);
+					}
+					else if (p->data[mi + 1] == 0x79){ // Reset
+						midimsg(mfs_size, mfs, MH_RESET, (cmdctx){
+							.channel = (p->data[mi] & 0x0F) + 1
+						}, 3, &p->data[mi]);
+					}
+					else if (lowcc_frommidi(p->data[mi + 1], &lowcc)){
 						// found a lowcc
 						midimsg(mfs_size, mfs, MH_LOWCC, (cmdctx){
 							.channel = (p->data[mi] & 0x0F) + 1,
@@ -1302,15 +1344,48 @@ void maphandler_parse(char *const *comp, int cs, bool *valid, bool *found, mapha
 		case MH_NRPN:
 			TODO("MH_NRPN");
 			break;
-		case MH_ALLSOUNDOFF:
-			TODO("MH_ALLSOUNDOFF");
-			break;
-		case MH_ALLNOTESOFF:
-			TODO("MH_ALLNOTESOFF");
-			break;
-		case MH_RESET:
-			TODO("MH_RESET");
-			break;
+		case MH_ALLSOUNDOFF: {
+			if (cs != 2){
+				fprintf(stderr, "Invalid format for OnAllSoundOff handler\n");
+				return;
+			}
+			int channel = anyint(comp[1]);
+			if (channel < -2){
+				fprintf(stderr, "Invalid channel for OnAllSoundOff handler: %s\n", comp[1]);
+				return;
+			}
+			*valid = true;
+			mh->type = MH_ALLSOUNDOFF;
+			mh->u.allsoundoff.channel = channel;
+		} return;
+		case MH_ALLNOTESOFF: {
+			if (cs != 2){
+				fprintf(stderr, "Invalid format for OnAllNotesOff handler\n");
+				return;
+			}
+			int channel = anyint(comp[1]);
+			if (channel < -2){
+				fprintf(stderr, "Invalid channel for OnAllNotesOff handler: %s\n", comp[1]);
+				return;
+			}
+			*valid = true;
+			mh->type = MH_ALLNOTESOFF;
+			mh->u.allnotesoff.channel = channel;
+		} return;
+		case MH_RESET: {
+			if (cs != 2){
+				fprintf(stderr, "Invalid format for OnReset handler\n");
+				return;
+			}
+			int channel = anyint(comp[1]);
+			if (channel < -2){
+				fprintf(stderr, "Invalid channel for OnReset handler: %s\n", comp[1]);
+				return;
+			}
+			*valid = true;
+			mh->type = MH_RESET;
+			mh->u.reset.channel = channel;
+		} return;
 		case MH_ELSE:
 			if (cs != 1){
 				fprintf(stderr, "Invalid format for OnElse handler\n");
@@ -1493,14 +1568,32 @@ void mapcmd_parse(maphandler_type mht, char *const *comp, int cs, bool *valid, b
 			TODO("MC_SENDNRPN");
 			break;
 		case MC_SENDALLSOUNDOFF:
-			TODO("MC_SENDALLSOUNDOFF");
-			break;
+			if (cs != 2){
+				fprintf(stderr, "Invalid format for SendAllSoundOff command\n");
+				return;
+			}
+			mht_mask |= MA_VAL_NUM;
+			ADD_ARG(comp[1], MA_VAL_NUM | MA_CHANNEL);
+			CHECK_RANGE(1, 16);
+			DONE();
 		case MC_SENDALLNOTESOFF:
-			TODO("MC_SENDALLNOTESOFF");
-			break;
+			if (cs != 2){
+				fprintf(stderr, "Invalid format for SendAllNotesOff command\n");
+				return;
+			}
+			mht_mask |= MA_VAL_NUM;
+			ADD_ARG(comp[1], MA_VAL_NUM | MA_CHANNEL);
+			CHECK_RANGE(1, 16);
+			DONE();
 		case MC_SENDRESET:
-			TODO("MC_SENDRESET");
-			break;
+			if (cs != 2){
+				fprintf(stderr, "Invalid format for SendReset command\n");
+				return;
+			}
+			mht_mask |= MA_VAL_NUM;
+			ADD_ARG(comp[1], MA_VAL_NUM | MA_CHANNEL);
+			CHECK_RANGE(1, 16);
+			DONE();
 	}
 	fail:
 	for (int i = 0; i < args_size; i++){
