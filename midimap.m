@@ -51,7 +51,7 @@
 	X(Effect5    , 0x5F)
 
 #define EACH_HCC(X)                \
-	X(_Any           ,   -1,   -1) \
+	X(_Any           ,   -1,   -2) \
 	X(Bank           , 0x00, 0x20) \
 	X(Mod            , 0x01, 0x21) \
 	X(Breath         , 0x02, 0x22) \
@@ -85,7 +85,7 @@
 	X(Undefined21    , 0x1F, 0x3F)
 
 #define EACH_RPN(X)                 \
-	X(_Any            ,   -1,   -1) \
+	X(_Any            ,   -1,   -2) \
 	X(BendRange       , 0x00, 0x00) \
 	X(FineTuning      , 0x00, 0x01) \
 	X(CoarseTuning    , 0x00, 0x02) \
@@ -311,6 +311,21 @@ void highcc_midi(highcc_type cc, int *midi1, int *midi2){
 		EACH_HCC(X)
 		#undef X
 	}
+}
+
+bool highcc_frommidi(int midi, highcc_type *cc, bool *msb, int *index){
+	switch (midi){
+		#define X(name, x, y)        \
+			case x:                  \
+			case y:                  \
+				*cc = HCC_ ## name;  \
+				*msb = midi == x;    \
+				*index = x;          \
+				return true;
+		EACH_HCC(X)
+		#undef X
+	}
+	return false;
 }
 
 typedef enum {
@@ -673,9 +688,25 @@ void mapcmds_exe(int size, mapcmd_st *cmds, cmdctx ctx, int dsize, const uint8_t
 				send[2] = value;
 				midisend(3, send);
 			} break;
-			case MC_SENDHIGHCC:
-				TODO("MC_SENDHIGHCC");
-				break;
+			case MC_SENDHIGHCC: {
+				int channel = cmd->args[0].type == MA_VAL_NUM ? cmd->args[0].val.num : ctx.channel;
+				int control1, control2;
+				highcc_midi(
+					cmd->args[1].type == MA_VAL_HIGHCC ? cmd->args[1].val.highcc : ctx.highcc,
+					&control1, &control2);
+				int value = cmd->args[2].type == MA_VAL_NUM ? cmd->args[2].val.num : ctx.value;
+				send[0] = 0xB0 | (channel - 1);
+				send[1] = control1;
+				send[2] = (value >> 7) & 0x7F;
+				if ((value & 0x7F) != 0){
+					send[3] = 0xB0 | (channel - 1);
+					send[4] = control2;
+					send[5] = value & 0x7F;
+					midisend(6, send);
+				}
+				else
+					midisend(3, send);
+			} break;
 			case MC_SENDRPN:
 				TODO("MC_SENDRPN");
 				break;
@@ -757,7 +788,16 @@ void midimsg(int size, mapfile *mfs, maphandler_type type, cmdctx ctx, int dsize
 					}
 					break;
 				case MH_HIGHCC:
-					TODO("MH_HIGHCC")
+					if ((mh->u.highcc.channel == -1 ||
+							(mh->u.highcc.channel == -2 && ctx.channel > 0) ||
+							mh->u.highcc.channel == ctx.channel) &&
+						(mh->u.highcc.control == HCC__Any || mh->u.highcc.control == ctx.highcc) &&
+						(mh->u.highcc.value == -1 ||
+							(mh->u.highcc.value == -2 && ctx.value > 0) ||
+							mh->u.highcc.value == ctx.value)){
+						mapcmds_exe(mh->size, mh->cmds, ctx, dsize, data);
+						return;
+					}
 					break;
 				case MH_RPN:
 					TODO("MH_RPN")
@@ -785,8 +825,16 @@ void midimsg(int size, mapfile *mfs, maphandler_type type, cmdctx ctx, int dsize
 		midimsg(size, mfs, MH_ELSE, (cmdctx){0}, dsize, data);
 }
 
-void midiread(const MIDIPacketList *pkl, uintptr_t mfs_size, mapfile *mfs){
+typedef struct {
+	mapfile *mfs;
+	int size;
+	int cc[32];
+} midictx_st, *midictx;
+
+void midiread(const MIDIPacketList *pkl, midictx mctx, void *dummy){
 	const MIDIPacket *p = &pkl->packet[0];
+	int mfs_size = mctx->size;
+	mapfile *mfs = mctx->mfs;
 	uint8_t delse[256];
 	for (int i = 0; i < pkl->numPackets; i++){
 		int mi = 0;
@@ -847,6 +895,9 @@ void midiread(const MIDIPacketList *pkl, uintptr_t mfs_size, mapfile *mfs){
 						break;
 					}
 					lowcc_type lowcc;
+					highcc_type highcc;
+					bool msb;
+					int index;
 					if (lowcc_frommidi(p->data[mi + 1], &lowcc)){
 						// found a lowcc
 						midimsg(mfs_size, mfs, MH_LOWCC, (cmdctx){
@@ -856,8 +907,18 @@ void midiread(const MIDIPacketList *pkl, uintptr_t mfs_size, mapfile *mfs){
 							.value = p->data[mi + 2]
 						}, 3, &p->data[mi]);
 					}
-					else{
-						TODO("Control Change tracking MSB/LSB, highcc")
+					else if (highcc_frommidi(p->data[mi + 1], &highcc, &msb, &index)){
+						// found a highcc
+						if (msb)
+							mctx->cc[index] = p->data[mi + 2] << 7;
+						else
+							mctx->cc[index] = (mctx->cc[index] & 0x3F8) | p->data[mi + 2];
+						midimsg(mfs_size, mfs, MH_HIGHCC, (cmdctx){
+							.channel = (p->data[mi] & 0x0F) + 1,
+							.cclow = false,
+							.highcc = highcc,
+							.value = mctx->cc[index]
+						}, 3, &p->data[mi]);
 					}
 					mi += 3;
 				} break;
@@ -1209,9 +1270,32 @@ void maphandler_parse(char *const *comp, int cs, bool *valid, bool *found, mapha
 			mh->u.lowcc.control = control;
 			mh->u.lowcc.value = value;
 		} return;
-		case MH_HIGHCC:
-			TODO("MH_HIGHCC");
-			break;
+		case MH_HIGHCC: {
+			if (cs != 4){
+				fprintf(stderr, "Invalid format for OnHighCC handler\n");
+				return;
+			}
+			int channel = anyint(comp[1]);
+			if (channel < -2){
+				fprintf(stderr, "Invalid channel for OnHighCC handler: %s\n", comp[1]);
+				return;
+			}
+			highcc_type control;
+			if (!highcc_fromname(comp[2], &control)){
+				fprintf(stderr, "Invalid control for OnHighCC handler: %s\n", comp[2]);
+				return;
+			}
+			int value = anyint(comp[3]);
+			if (value < -2){
+				fprintf(stderr, "Invalid value for OnHighCC handler: %s\n", comp[3]);
+				return;
+			}
+			*valid = true;
+			mh->type = MH_HIGHCC;
+			mh->u.highcc.channel = channel;
+			mh->u.highcc.control = control;
+			mh->u.highcc.value = value;
+		} return;
 		case MH_RPN:
 			TODO("MH_RPN");
 			break;
@@ -1391,8 +1475,17 @@ void mapcmd_parse(maphandler_type mht, char *const *comp, int cs, bool *valid, b
 			CHECK_RANGE(0, 127);
 			DONE();
 		case MC_SENDHIGHCC:
-			TODO("MC_SENDHIGHCC");
-			break;
+			if (cs != 4){
+				fprintf(stderr, "Invalid format for SendHighCC command\n");
+				return;
+			}
+			mht_mask |= MA_VAL_NUM | MA_VAL_HIGHCC;
+			ADD_ARG(comp[1], MA_VAL_NUM | MA_CHANNEL);
+			CHECK_RANGE(1, 16);
+			ADD_ARG(comp[2], MA_VAL_HIGHCC | MA_CONTROL);
+			ADD_ARG(comp[3], MA_VAL_NUM | MA_VALUE);
+			CHECK_RANGE(0, 16383);
+			DONE();
 		case MC_SENDRPN:
 			TODO("MC_SENDRPN");
 			break;
@@ -1514,6 +1607,7 @@ int main(int argc, char **argv){
 		mapfile *mfs;
 		bool opened;
 		MIDIPortRef pref;
+		midictx_st mctx;
 	} srcs[MAX_SOURCES];
 
 	// print version and copyright
@@ -1867,15 +1961,20 @@ int main(int argc, char **argv){
 		for (int i = 0; i < srcs_size; i++){
 			if (srcs[i].size <= 0)
 				continue;
+			// intialize midi context
+			srcs[i].mctx.size = srcs[i].size;
+			srcs[i].mctx.mfs = srcs[i].mfs;
+			for (int c = 0; c < 32; c++)
+				srcs[i].mctx.cc[c] = 0;
 			MIDIPortRef pref = 0;
 			OSStatus pst = MIDIInputPortCreate(client, (CFStringRef)@"midimap-ip",
-				(MIDIReadProc)midiread, (void *)(uintptr_t)srcs[i].size, &pref);
+				(MIDIReadProc)midiread, &srcs[i].mctx, &pref);
 			if (pst != 0){
 				fprintf(stderr, "Failed to open Source %d for reading\n", srcs[i].i);
 				result = 1;
 				goto cleanup;
 			}
-			OSStatus nst = MIDIPortConnectSource(pref, srcs[i].ep, srcs[i].mfs);
+			OSStatus nst = MIDIPortConnectSource(pref, srcs[i].ep, NULL);
 			if (nst != 0){
 				MIDIPortDispose(pref);
 				fprintf(stderr, "Failed to open Source %d for reading\n", srcs[i].i);
