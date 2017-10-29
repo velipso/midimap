@@ -11,9 +11,9 @@ Example Use Cases
 ```
 OnNote Any NoteC3 Any
   # if a C3 is hit, then send a C3+E3+G3
-  SendNote Channel NoteC3 Velocity
-  SendNote Channel NoteE3 Velocity
-  SendNote Channel NoteG3 Velocity
+  SendNote Channel NoteC3 Value
+  SendNote Channel NoteE3 Value
+  SendNote Channel NoteG3 Value
 End
 
 OnElse
@@ -59,7 +59,7 @@ End
 ```
 OnNote Any Any Positive
   # spy on all note hit events and print them
-  Print "HIT:" Note Velocity
+  Print "HIT:" Note Value
   SendCopy
 End
 
