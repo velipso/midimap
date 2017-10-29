@@ -4,44 +4,16 @@
 
 #include <stdio.h>
 #include <stdlib.h>
+#include <stdint.h>
 #import <Foundation/Foundation.h>
 #include <CoreMIDI/CoreMIDI.h>
 #include <mach/mach_time.h>
 #include <pthread.h>
 #include <signal.h>
 
-/*
-void midiread(const MIDIPacketList *pkl, osxmidi_src_st *src, void *dummy){
-	const MIDIPacket *p = &pkl->packet[0];
-	for (int i = 0; i < pkl->numPackets; i++){
-		// p->timeStamp, p->length, p->data
-		p = MIDIPacketNext(p);
-	}
-}
 
-bool osxmidi_src_open(int src_id, osxmidi_src_st *src){
-	MIDIEndpointRef msrc = MIDIGetSource(src_id);
-	if (msrc == 0)
-		return false;
+#define TODO(s)   fprintf(stderr, "TODO: " s "\n"); abort();
 
-	MIDIPortRef pref = 0;
-	OSStatus pst = MIDIInputPortCreate(client_ref, (CFStringRef)@"paralysis-ip",
-		(MIDIReadProc)midiread, src, &pref);
-	if (pst != 0)
-		return false;
-
-	OSStatus nst = MIDIPortConnectSource(pref, msrc, NULL);
-	if (nst != 0){
-		MIDIPortDispose(pref);
-		return false;
-	}
-}
-
-void osxmidi_src_close(osxmidi_src_st *src){
-	MIDIPortDisconnectSource((MIDIPortRef)src->port, (MIDIEndpointRef)src->endpoint);
-	MIDIPortDispose((MIDIPortRef)src->port);
-}
-*/
 
 #define EACH_LCC(X)      \
 	X(_Any       ,   -1) \
@@ -565,20 +537,7 @@ void midinotify(const MIDINotification *message, void *user){
 	fprintf(stderr, "Notify: %s\n", msg);
 }
 
-double ts_numer, ts_denom;
-inline double ts_sec(double ts){
-	return ts * ts_numer / ts_denom;
-}
-
-inline double ts_unsec(double ts){
-	return ts * ts_denom / ts_numer;
-}
-
-inline double ts_now(){
-	return ts_sec(mach_absolute_time());
-}
-
-bool done = false;
+bool done = true;
 pthread_mutex_t done_mutex;
 pthread_cond_t done_cond;
 void catchdone(int dummy){
@@ -589,6 +548,288 @@ void catchdone(int dummy){
 }
 
 MIDIEndpointRef midiout;
+MIDITimeStamp tsnow;
+
+void midisend(int sz, const uint8_t *dt){
+	static uint8_t buffer[1000];
+	MIDIPacketList *pkl = (MIDIPacketList *)buffer;
+	MIDIPacket *pk = MIDIPacketListInit(pkl);
+	MIDIPacketListAdd(pkl, sizeof(buffer), pk, tsnow, sz, dt);
+	OSStatus st = MIDIReceived(midiout, pkl);
+	if (st != 0)
+		fprintf(stderr, "Failed to send MIDI message\n");
+}
+
+typedef struct {
+	int channel;
+	int note;
+	int velocity;
+	int bend;
+	int pressure;
+	int patch;
+	bool cclow; // is Control a lowcc?
+	lowcc_type lowcc;
+	highcc_type highcc;
+	int value;
+	rpn_type rpn;
+	int nrpn;
+} cmdctx;
+
+void mapcmds_exe(int size, mapcmd_st *cmds, cmdctx ctx, int dsize, const uint8_t *data){
+	uint8_t send[10];
+	for (int c = 0; c < size; c++){
+		mapcmd cmd = &cmds[c];
+		switch (cmd->type){
+			case MC_PRINT:
+				for (int i = 0; i < cmd->size; i++){
+					if (i > 0)
+						printf(" ");
+					maparg ma = &cmd->args[i];
+					switch (ma->type){
+						case MA_VAL_NUM   : printf("%d", ma->val.num);                 break;
+						case MA_VAL_STR   : printf("%s", ma->val.str);                 break;
+						case MA_VAL_NOTE  : printf("%s", note_name(ma->val.note));     break;
+						case MA_VAL_LOWCC : printf("%s", lowcc_name(ma->val.lowcc));   break;
+						case MA_VAL_HIGHCC: printf("%s", highcc_name(ma->val.highcc)); break;
+						case MA_VAL_RPN   : printf("%s", rpn_name(ma->val.rpn));       break;
+						case MA_RAWDATA:
+							printf("[");
+							for (int i = 0; i < dsize; i++)
+								printf(i == 0 ? "%02X" : " %02X", data[i]);
+							printf("]");
+							break;
+						case MA_CHANNEL   : printf("%d", ctx.channel);                 break;
+						case MA_NOTE      : printf("%s", note_name(ctx.note));         break;
+						case MA_VELOCITY  : printf("%d", ctx.velocity);                break;
+						case MA_BEND      : printf("%d", ctx.bend);                    break;
+						case MA_PRESSURE  : printf("%d", ctx.pressure);                break;
+						case MA_PATCH     : printf("%d", ctx.patch);                   break;
+						case MA_CONTROL:
+							printf("%s",
+								ctx.cclow ? lowcc_name(ctx.lowcc) : highcc_name(ctx.highcc));
+							break;
+						case MA_VALUE     : printf("%d", ctx.value);                   break;
+						case MA_RPN       : printf("%s", rpn_name(ctx.rpn));           break;
+						case MA_NRPN      : printf("%d", ctx.nrpn);                    break;
+					}
+				}
+				printf("\n");
+				break;
+			case MC_SENDCOPY:
+				midisend(dsize, data);
+				break;
+			case MC_SENDNOTE: {
+				int channel = cmd->args[0].type == MA_VAL_NUM ? cmd->args[0].val.num : ctx.channel;
+				int note = cmd->args[1].type == MA_VAL_NOTE ? cmd->args[1].val.note : ctx.note;
+				int vel = cmd->args[2].type == MA_VAL_NUM ? cmd->args[2].val.num : ctx.velocity;
+				send[0] = (vel == 0 ? 0x80 : 0x90) | (channel - 1);
+				send[1] = note;
+				send[2] = vel;
+				midisend(3, send);
+			} break;
+			case MC_SENDBEND:
+				TODO("MC_SENDBEND");
+				break;
+			case MC_SENDNOTEPRESSURE:
+				TODO("MC_SENDNOTEPRESSURE");
+				break;
+			case MC_SENDCHANPRESSURE:
+				TODO("MC_SENDCHANPRESSURE");
+				break;
+			case MC_SENDPATCH:
+				TODO("MC_SENDPATCH");
+				break;
+			case MC_SENDLOWCC:
+				TODO("MC_SENDLOWCC");
+				break;
+			case MC_SENDHIGHCC:
+				TODO("MC_SENDHIGHCC");
+				break;
+			case MC_SENDRPN:
+				TODO("MC_SENDRPN");
+				break;
+			case MC_SENDNRPN:
+				TODO("MC_SENDNRPN");
+				break;
+			case MC_SENDALLSOUNDOFF:
+				TODO("MC_SENDALLSOUNDOFF");
+				break;
+			case MC_SENDALLNOTESOFF:
+				TODO("MC_SENDALLNOTESOFF");
+				break;
+			case MC_SENDRESET:
+				TODO("MC_SENDRESET");
+				break;
+		}
+	}
+}
+
+void midimsg(int size, mapfile *mfs, maphandler_type type, cmdctx ctx, int dsize,
+	const uint8_t *data){
+	for (int m = 0; m < size; m++){
+		mapfile mf = mfs[m];
+		for (int h = 0; h < mf->size; h++){
+			maphandler mh = &mf->handlers[h];
+			if (mh->type != type)
+				continue;
+			switch (type){
+				case MH_NOTE:
+					if ((mh->u.note.channel == -1 || mh->u.note.channel == ctx.channel) &&
+						(mh->u.note.note == -1 || mh->u.note.note == ctx.note) &&
+						(mh->u.note.velocity == -1 || mh->u.note.velocity == ctx.velocity)){
+						mapcmds_exe(mh->size, mh->cmds, ctx, dsize, data);
+						return;
+					}
+					break;
+				case MH_BEND:
+					TODO("MH_BEND")
+					break;
+				case MH_NOTEPRESSURE:
+					TODO("MH_NOTEPRESSURE")
+					break;
+				case MH_CHANPRESSURE:
+					TODO("MH_CHANPRESSURE")
+					break;
+				case MH_PATCH:
+					TODO("MH_PATCH")
+					break;
+				case MH_LOWCC:
+					TODO("MH_LOWCC")
+					break;
+				case MH_HIGHCC:
+					TODO("MH_HIGHCC")
+					break;
+				case MH_RPN:
+					TODO("MH_RPN")
+					break;
+				case MH_NRPN:
+					TODO("MH_NRPN")
+					break;
+				case MH_ALLSOUNDOFF:
+					TODO("MH_ALLSOUNDOFF")
+					break;
+				case MH_ALLNOTESOFF:
+					TODO("MH_ALLNOTESOFF")
+					break;
+				case MH_RESET:
+					TODO("MH_RESET")
+					break;
+				case MH_ELSE:
+					TODO("MH_ELSE")
+					break;
+			}
+		}
+	}
+	// nothing got it, so see if OnElse should get it
+	if (type != MH_ELSE)
+		midimsg(size, mfs, MH_ELSE, (cmdctx){0}, dsize, data);
+}
+
+void midiread(const MIDIPacketList *pkl, uintptr_t mfs_size, mapfile *mfs){
+	const MIDIPacket *p = &pkl->packet[0];
+	uint8_t delse[256];
+	for (int i = 0; i < pkl->numPackets; i++){
+		int mi = 0;
+		int ielse = 0;
+		tsnow = p->timeStamp;
+		#define CHECK_ELSE()  do{                                                \
+				if (ielse > 0){                                                  \
+					midimsg(mfs_size, mfs, MH_ELSE, (cmdctx){0}, ielse, delse);  \
+					ielse = 0;                                                   \
+				}                                                                \
+			} while (false)
+		while (mi < p->length){
+			switch (p->data[mi] & 0xF0){
+				case 0x80: { // Note Off: Note/Velocity
+					CHECK_ELSE();
+					if (mi + 3 > p->length){
+						mi += 3;
+						break;
+					}
+					// report note off as note on with zero velocity
+					midimsg(mfs_size, mfs, MH_NOTE, (cmdctx){
+						.channel = (p->data[mi] & 0x0F) + 1,
+						.note = p->data[mi + 1],
+						.velocity = 0
+					}, 3, &p->data[mi]);
+					mi += 3;
+				} break;
+				case 0x90: { // Note On: Note/Velocity
+					CHECK_ELSE();
+					if (mi + 3 > p->length){
+						mi += 3;
+						break;
+					}
+					midimsg(mfs_size, mfs, MH_NOTE, (cmdctx){
+						.channel = (p->data[mi] & 0x0F) + 1,
+						.note = p->data[mi + 1],
+						.velocity = p->data[mi + 2]
+					}, 3, &p->data[mi]);
+					mi += 3;
+				} break;
+				case 0xA0: { // Note Pressure: Note/Pressure
+					CHECK_ELSE();
+					if (mi + 3 > p->length){
+						mi += 3;
+						break;
+					}
+					midimsg(mfs_size, mfs, MH_NOTEPRESSURE, (cmdctx){
+						.channel = (p->data[mi] & 0x0F) + 1,
+						.note = p->data[mi + 1],
+						.pressure = p->data[mi + 2]
+					}, 3, &p->data[mi]);
+					mi += 3;
+				} break;
+				case 0xB0: { // Control Change: Control/Value
+					TODO("Control Change tracking MSB/LSB, highcc/lowcc")
+				} break;
+				case 0xC0: { // Program Change: Patch
+					CHECK_ELSE();
+					if (mi + 2 > p->length){
+						mi += 2;
+						break;
+					}
+					midimsg(mfs_size, mfs, MH_PATCH, (cmdctx){
+						.channel = (p->data[mi] & 0x0F) + 1,
+						.patch = p->data[mi + 1]
+					}, 2, &p->data[mi]);
+					mi += 2;
+				} break;
+				case 0xD0: { // Channel Pressure: Pressure
+					CHECK_ELSE();
+					if (mi + 2 > p->length){
+						mi += 2;
+						break;
+					}
+					midimsg(mfs_size, mfs, MH_CHANPRESSURE, (cmdctx){
+						.channel = (p->data[mi] & 0x0F) + 1,
+						.pressure = p->data[mi + 1]
+					}, 2, &p->data[mi]);
+					mi += 2;
+				} break;
+				case 0xE0: { // Pitch Bend: LSB/MSB
+					CHECK_ELSE();
+					if (mi + 3 > p->length){
+						mi += 3;
+						break;
+					}
+					midimsg(mfs_size, mfs, MH_BEND, (cmdctx){
+						.channel = (p->data[mi] & 0x0F) + 1,
+						.bend = (((int)p->data[mi + 2])) << 7 | ((int)p->data[mi + 1])
+					}, 3, &p->data[mi]);
+					mi += 3;
+				} break;
+				default:
+					if (ielse < 256)
+						delse[ielse++] = p->data[mi++];
+					break;
+			}
+		}
+		CHECK_ELSE();
+		p = MIDIPacketNext(p);
+	}
+	#undef CHECK_ELSE
+}
 
 inline bool isWhite(char ch){
 	return ch == ' ' || ch == '\t' || ch == '\n' || ch == '\r';
@@ -789,7 +1030,6 @@ void maphandler_parse(char *const *comp, int cs, bool *valid, bool *found, mapha
 		return;
 	}
 
-	#define TODO(s)   fprintf(stderr, "TODO: " s "\n"); abort();
 	switch (mht){
 		case MH_NOTE:
 			if (cs != 4){
@@ -854,7 +1094,6 @@ void maphandler_parse(char *const *comp, int cs, bool *valid, bool *found, mapha
 			TODO("MH_ELSE");
 			break;
 	}
-	#undef TODO
 }
 
 void mapcmd_parse(maphandler_type mht, char *const *comp, int cs, bool *valid, bool *isend,
@@ -894,8 +1133,6 @@ void mapcmd_parse(maphandler_type mht, char *const *comp, int cs, bool *valid, b
 		return;
 	}
 
-	#define TODO(s)   fprintf(stderr, "TODO: " s "\n"); abort();
-
 	int args_size = 0;
 	maparg_st *args = NULL;
 
@@ -908,6 +1145,15 @@ void mapcmd_parse(maphandler_type mht, char *const *comp, int cs, bool *valid, b
 			args_size++;                                                         \
 			args = m_realloc(args, sizeof(maparg_st) * args_size);               \
 			args[args_size - 1] = ma;                                            \
+		} while (false)
+
+	#define CHECK_RANGE(min, max)  do{                                                      \
+			if (args[args_size - 1].type == MA_VAL_NUM &&                                   \
+				(args[args_size - 1].val.num < min || args[args_size - 1].val.num > max)){  \
+				fprintf(stderr, "Number (%d) out of range (%d-%d)\n",                       \
+					args[args_size - 1].val.num, min, max);                                 \
+				goto fail;                                                                  \
+			}                                                                               \
 		} while (false)
 
 	#define DONE()  do {           \
@@ -944,16 +1190,21 @@ void mapcmd_parse(maphandler_type mht, char *const *comp, int cs, bool *valid, b
 			DONE();
 		};
 		case MC_SENDCOPY:
-			TODO("MC_SENDCOPY");
-			break;
+			if (cs != 1){
+				fprintf(stderr, "Invalid format for SendCopy command\n");
+				return;
+			}
+			DONE();
 		case MC_SENDNOTE:
 			if (cs != 4){
 				fprintf(stderr, "Invalid format for SendNote command\n");
 				return;
 			}
 			ADD_ARG(comp[1], MA_VAL_NUM | MA_CHANNEL);
+			CHECK_RANGE(1, 16);
 			ADD_ARG(comp[2], MA_VAL_NOTE | MA_NOTE);
 			ADD_ARG(comp[3], MA_VAL_NUM | MA_VELOCITY);
+			CHECK_RANGE(0, 127);
 			DONE();
 		case MC_SENDBEND:
 			TODO("MC_SENDBEND");
@@ -997,6 +1248,7 @@ void mapcmd_parse(maphandler_type mht, char *const *comp, int cs, bool *valid, b
 	free(args);
 	#undef TODO
 	#undef ADD_ARG
+	#undef CHECK_RANGE
 	#undef DONE
 }
 
@@ -1091,6 +1343,8 @@ int main(int argc, char **argv){
 		int i;
 		int size;
 		mapfile *mfs;
+		bool opened;
+		MIDIPortRef pref;
 	} srcs[MAX_SOURCES];
 
 	// print version and copyright
@@ -1310,14 +1564,6 @@ int main(int argc, char **argv){
 		return 0;
 	}
 
-	// get timing information for converting timestamps to seconds
-	{
-		mach_timebase_info_data_t ts;
-		mach_timebase_info(&ts);
-		ts_numer = ts.numer;
-		ts_denom = ts.denom * 1000000000.0;
-	}
-
 	// initialize MIDI
 	MIDIClientRef client;
 	{
@@ -1352,6 +1598,7 @@ int main(int argc, char **argv){
 			srcs[si].name = NULL;
 			srcs[si].size = 0;
 			srcs[si].mfs = NULL;
+			srcs[si].opened = false;
 			CFStringRef name = nil;
 			if (MIDIObjectGetStringProperty(src, kMIDIPropertyDisplayName, &name) == 0 &&
 				name != nil){
@@ -1368,6 +1615,7 @@ int main(int argc, char **argv){
 	}
 
 	// interpret the command line arguments
+	bool should_listen = false;
 	{
 		for (int i = 1; i < argc; i += 3){
 			if (strcmp(argv[i], "-m") != 0 || i >= argc - 2){
@@ -1395,10 +1643,17 @@ int main(int argc, char **argv){
 				goto cleanup;
 			}
 			// add it to the device
+			should_listen = true;
 			srcs[srci].size++;
 			srcs[srci].mfs = m_realloc(srcs[srci].mfs, sizeof(mapfile) * srcs[srci].size);
 			srcs[srci].mfs[srcs[srci].size - 1] = mf;
 		}
+	}
+
+	// check if anything needs to be done
+	if (!should_listen){
+		printf("Nothing to do\n");
+		goto cleanup;
 	}
 
 	// create our virtual MIDI source
@@ -1433,8 +1688,37 @@ int main(int argc, char **argv){
 			goto cleanup;
 		}
 		init_out = true;
-		printf("Virtual MIDI device: %s\n", name);
+		printf("Virtual MIDI device for output:\n  %s\n\n", name);
 		free(name);
+	}
+
+	// open MIDI devices
+	{
+		for (int i = 0; i < srcs_size; i++){
+			if (srcs[i].size <= 0)
+				continue;
+			MIDIPortRef pref = 0;
+			OSStatus pst = MIDIInputPortCreate(client, (CFStringRef)@"midimap-ip",
+				(MIDIReadProc)midiread, (void *)(uintptr_t)srcs[i].size, &pref);
+			if (pst != 0){
+				fprintf(stderr, "Failed to open Source %d for reading\n", srcs[i].i);
+				result = 1;
+				goto cleanup;
+			}
+			OSStatus nst = MIDIPortConnectSource(pref, srcs[i].ep, srcs[i].mfs);
+			if (nst != 0){
+				MIDIPortDispose(pref);
+				fprintf(stderr, "Failed to open Source %d for reading\n", srcs[i].i);
+				result = 1;
+				goto cleanup;
+			}
+			srcs[i].opened = true;
+			srcs[i].pref = pref;
+			if (srcs[i].name)
+				printf("Listening to Source %d: \"%s\"\n", srcs[i].i, srcs[i].name);
+			else
+				printf("Listening to Source %d: No Name Available\n", srcs[i].i);
+		}
 	}
 
 	// wait for signal from Ctrl+C
@@ -1445,6 +1729,7 @@ int main(int argc, char **argv){
 		pthread_mutex_init(&done_mutex, NULL);
 		pthread_cond_init(&done_cond, NULL);
 		pthread_mutex_lock(&done_mutex);
+		done = false;
 		while (!done)
 			pthread_cond_wait(&done_cond, &done_mutex);
 		pthread_mutex_unlock(&done_mutex);
@@ -1455,6 +1740,10 @@ int main(int argc, char **argv){
 
 	cleanup:
 	for (int i = 0; i < srcs_size; i++){
+		if (srcs[i].opened){
+			MIDIPortDisconnectSource(srcs[i].pref, srcs[i].ep);
+			MIDIPortDispose(srcs[i].pref);
+		}
 		for (int j = 0; j < srcs[i].size; j++)
 			mapfile_free(srcs[i].mfs[j]);
 		m_free(srcs[i].mfs);
