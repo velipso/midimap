@@ -3,6 +3,72 @@ midimap
 
 Command line tool for generating and mapping MIDI messages for Mac OSX.
 
+Example Use Cases
+=================
+
+### Playing a chord when hitting a single button
+
+```
+OnNote Any NoteC3 Any
+	# if a C3 is hit, then send a C3+E3+G3
+	SendNote Channel NoteC3 Velocity
+	SendNote Channel NoteE3 Velocity
+	SendNote Channel NoteG3 Velocity
+End
+
+OnElse
+	# if anything else is hit, pass it along
+	SendCopy
+End
+```
+
+### Map a note to the sustain pedal
+
+```
+OnNote Any NoteC3 0
+	# if C3 is released, release the pedal
+	SendLowCC Channel ControlPedal 0
+End
+
+OnNote Any NoteC3 Positive
+	# if C3 is hit, hit the pedal
+	SendLowCC Channel ControlPedal 127
+End
+
+OnElse
+	# anything else, pass it along
+	SendCopy
+End
+```
+
+### Stop a device from sending Reset commands
+
+```
+OnReset Any
+	# do nothing
+End
+
+OnElse
+	# anything else, pass it along
+	SendCopy
+End
+```
+
+### Print out note velocities
+
+```
+OnNote Any Any Positive
+	# spy on all note hit events and print them
+	Print "HIT:" Note Velocity
+	SendCopy
+End
+
+OnElse
+	# anything else, pass it along
+	SendCopy
+End
+```
+
 Usage
 =====
 
