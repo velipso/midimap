@@ -269,6 +269,15 @@ void lowcc_midi(lowcc_type cc, int *midi){
 	}
 }
 
+bool lowcc_frommidi(int midi, lowcc_type *cc){
+	switch (midi){
+		#define X(name, v)  case v: *cc = LCC_ ## name; return true;
+		EACH_LCC(X)
+		#undef X
+	}
+	return false;
+}
+
 typedef enum {
 	#define X(name, x, y)  HCC_ ## name,
 	EACH_HCC(X)
@@ -455,18 +464,22 @@ typedef struct {
 			int patch;
 		} patch;
 		struct {
+			int channel;
 			lowcc_type control;
 			int value;
 		} lowcc;
 		struct {
+			int channel;
 			highcc_type control;
 			int value;
 		} highcc;
 		struct {
+			int channel;
 			rpn_type rpn;
 			int value;
 		} rpn;
 		struct {
+			int channel;
 			int nrpn;
 			int value;
 		} nrpn;
@@ -550,11 +563,11 @@ void catchdone(int dummy){
 MIDIEndpointRef midiout;
 MIDITimeStamp tsnow;
 
-void midisend(int sz, const uint8_t *dt){
+void midisend(int size, const uint8_t *data){
 	static uint8_t buffer[1000];
 	MIDIPacketList *pkl = (MIDIPacketList *)buffer;
 	MIDIPacket *pk = MIDIPacketListInit(pkl);
-	MIDIPacketListAdd(pkl, sizeof(buffer), pk, tsnow, sz, dt);
+	MIDIPacketListAdd(pkl, sizeof(buffer), pk, tsnow, size, data);
 	OSStatus st = MIDIReceived(midiout, pkl);
 	if (st != 0)
 		fprintf(stderr, "Failed to send MIDI message\n");
@@ -639,9 +652,17 @@ void mapcmds_exe(int size, mapcmd_st *cmds, cmdctx ctx, int dsize, const uint8_t
 			case MC_SENDPATCH:
 				TODO("MC_SENDPATCH");
 				break;
-			case MC_SENDLOWCC:
-				TODO("MC_SENDLOWCC");
-				break;
+			case MC_SENDLOWCC: {
+				int channel = cmd->args[0].type == MA_VAL_NUM ? cmd->args[0].val.num : ctx.channel;
+				int control;
+				lowcc_midi(cmd->args[1].type == MA_VAL_LOWCC ? cmd->args[1].val.lowcc : ctx.lowcc,
+					&control);
+				int value = cmd->args[2].type == MA_VAL_NUM ? cmd->args[2].val.num : ctx.value;
+				send[0] = 0xB0 | (channel - 1);
+				send[1] = control;
+				send[2] = value;
+				midisend(3, send);
+			} break;
 			case MC_SENDHIGHCC:
 				TODO("MC_SENDHIGHCC");
 				break;
@@ -694,7 +715,12 @@ void midimsg(int size, mapfile *mfs, maphandler_type type, cmdctx ctx, int dsize
 					TODO("MH_PATCH")
 					break;
 				case MH_LOWCC:
-					TODO("MH_LOWCC")
+					if ((mh->u.lowcc.channel == -1 || mh->u.lowcc.channel == ctx.channel) &&
+						(mh->u.lowcc.control == LCC__Any || mh->u.lowcc.control == ctx.lowcc) &&
+						(mh->u.lowcc.value == -1 || mh->u.lowcc.value == ctx.value)){
+						mapcmds_exe(mh->size, mh->cmds, ctx, dsize, data);
+						return;
+					}
 					break;
 				case MH_HIGHCC:
 					TODO("MH_HIGHCC")
@@ -781,7 +807,25 @@ void midiread(const MIDIPacketList *pkl, uintptr_t mfs_size, mapfile *mfs){
 					mi += 3;
 				} break;
 				case 0xB0: { // Control Change: Control/Value
-					TODO("Control Change tracking MSB/LSB, highcc/lowcc")
+					CHECK_ELSE();
+					if (mi + 3 > p->length){
+						mi += 3;
+						break;
+					}
+					lowcc_type lowcc;
+					if (lowcc_frommidi(p->data[mi + 1], &lowcc)){
+						// found a lowcc
+						midimsg(mfs_size, mfs, MH_LOWCC, (cmdctx){
+							.channel = (p->data[mi] & 0x0F) + 1,
+							.cclow = true,
+							.lowcc = lowcc,
+							.value = p->data[mi + 2]
+						}, 3, &p->data[mi]);
+					}
+					else{
+						TODO("Control Change tracking MSB/LSB, highcc")
+					}
+					mi += 3;
 				} break;
 				case 0xC0: { // Program Change: Patch
 					CHECK_ELSE();
@@ -1031,22 +1075,22 @@ void maphandler_parse(char *const *comp, int cs, bool *valid, bool *found, mapha
 	}
 
 	switch (mht){
-		case MH_NOTE:
+		case MH_NOTE: {
 			if (cs != 4){
 				fprintf(stderr, "Invalid format for OnNote handler\n");
 				return;
 			}
 			int channel  = anyint(comp[1]);
-			int note     = note_fromname(comp[2]);
-			int velocity = anyint(comp[3]);
 			if (channel < -1){
 				fprintf(stderr, "Invalid channel for OnNote handler: %s\n", comp[1]);
 				return;
 			}
+			int note = note_fromname(comp[2]);
 			if (note < -1){
 				fprintf(stderr, "Invalid note for OnNote handler: %s\n", comp[2]);
 				return;
 			}
+			int velocity = anyint(comp[3]);
 			if (velocity < -1){
 				fprintf(stderr, "Invalid velocity for OnNote handler: %s\n", comp[3]);
 				return;
@@ -1056,7 +1100,7 @@ void maphandler_parse(char *const *comp, int cs, bool *valid, bool *found, mapha
 			mh->u.note.channel = channel;
 			mh->u.note.note = note;
 			mh->u.note.velocity = velocity;
-			return;
+		} return;
 		case MH_BEND:
 			TODO("MH_BEND");
 			break;
@@ -1069,9 +1113,32 @@ void maphandler_parse(char *const *comp, int cs, bool *valid, bool *found, mapha
 		case MH_PATCH:
 			TODO("MH_PATCH");
 			break;
-		case MH_LOWCC:
-			TODO("MH_LOWCC");
-			break;
+		case MH_LOWCC: {
+			if (cs != 4){
+				fprintf(stderr, "Invalid format for OnLowCC handler\n");
+				return;
+			}
+			int channel = anyint(comp[1]);
+			if (channel < -1){
+				fprintf(stderr, "Invalid channel for OnLowCC handler: %s\n", comp[1]);
+				return;
+			}
+			lowcc_type control;
+			if (!lowcc_fromname(comp[2], &control)){
+				fprintf(stderr, "Invalid control for OnLowCC handler: %s\n", comp[2]);
+				return;
+			}
+			int value = anyint(comp[3]);
+			if (value < -1){
+				fprintf(stderr, "Invalid value for OnLowCC handler: %s\n", comp[3]);
+				return;
+			}
+			*valid = true;
+			mh->type = MH_LOWCC;
+			mh->u.lowcc.channel = channel;
+			mh->u.lowcc.control = control;
+			mh->u.lowcc.value = value;
+		} return;
 		case MH_HIGHCC:
 			TODO("MH_HIGHCC");
 			break;
@@ -1224,8 +1291,16 @@ void mapcmd_parse(maphandler_type mht, char *const *comp, int cs, bool *valid, b
 			TODO("MC_SENDPATCH");
 			break;
 		case MC_SENDLOWCC:
-			TODO("MC_SENDLOWCC");
-			break;
+			if (cs != 4){
+				fprintf(stderr, "Invalid format for SendLowCC command\n");
+				return;
+			}
+			ADD_ARG(comp[1], MA_VAL_NUM | MA_CHANNEL);
+			CHECK_RANGE(1, 16);
+			ADD_ARG(comp[2], MA_VAL_LOWCC | MA_CONTROL);
+			ADD_ARG(comp[3], MA_VAL_NUM | MA_VALUE);
+			CHECK_RANGE(0, 127);
+			DONE();
 		case MC_SENDHIGHCC:
 			TODO("MC_SENDHIGHCC");
 			break;

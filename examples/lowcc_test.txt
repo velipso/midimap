@@ -1,0 +1,12 @@
+# (c) Copyright 2017 Sean Connelly (@voidqk) http://syntheti.cc
+# MIT License
+# Project Home: https://github.com/voidqk/midimap
+
+#
+# test for lowcc
+#
+
+OnLowCC Any Any Any
+	Print Channel Control Value
+	SendLowCC Channel Control Value
+End
