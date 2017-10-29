@@ -3,297 +3,393 @@
 # Project Home: https://github.com/voidqk/midimap
 
 OnNote Any NoteC1 Any
+	Print "I"
+	SendNote Channel NoteC1 Velocity  # Bass Note
+	SendNote Channel NoteC2 Velocity
+	SendNote Channel NoteE2 Velocity
+	SendNote Channel NoteG2 Velocity
+End
+
+OnNote Any NoteDb1 Any
+	Print "V7"
+	SendNote Channel NoteG1 Velocity  # Bass Note
+	SendNote Channel NoteB1 Velocity
+	SendNote Channel NoteD2 Velocity
+	SendNote Channel NoteF2 Velocity
+	SendNote Channel NoteG2 Velocity
+End
+
+OnNote Any NoteD1 Any
+	Print "ii"
+	SendNote Channel NoteD1 Velocity  # Bass Note
+	SendNote Channel NoteD2 Velocity
+	SendNote Channel NoteF2 Velocity
+	SendNote Channel NoteA2 Velocity
+End
+
+OnNote Any NoteEb1 Any
+	Print "VI"
+	SendNote Channel NoteA1 Velocity  # Bass Note
+	SendNote Channel NoteDb2 Velocity
+	SendNote Channel NoteE2 Velocity
+	SendNote Channel NoteA2 Velocity
+End
+
+OnNote Any NoteE1 Any
+	Print "iii"
+	SendNote Channel NoteE1 Velocity  # Bass Note
+	SendNote Channel NoteB1 Velocity
+	SendNote Channel NoteE2 Velocity
+	SendNote Channel NoteG2 Velocity
+End
+
+OnNote Any NoteF1 Any
+	Print "IV"
+	SendNote Channel NoteF1 Velocity  # Bass Note
+	SendNote Channel NoteC2 Velocity
+	SendNote Channel NoteF2 Velocity
+	SendNote Channel NoteA2 Velocity
+End
+
+OnNote Any NoteGb1 Any
+	Print "I7"
+	SendNote Channel NoteC1 Velocity  # Bass Note
+	SendNote Channel NoteC2 Velocity
+	SendNote Channel NoteE2 Velocity
+	SendNote Channel NoteG2 Velocity
+	SendNote Channel NoteBb2 Velocity
+End
+
+OnNote Any NoteG1 Any
+	Print "V"
+	SendNote Channel NoteG1 Velocity  # Bass Note
+	SendNote Channel NoteB1 Velocity
+	SendNote Channel NoteE2 Velocity
+	SendNote Channel NoteG2 Velocity
+End
+
+OnNote Any NoteAb1 Any
+	Print "II"
+	SendNote Channel NoteD1 Velocity  # Bass Note
+	SendNote Channel NoteD2 Velocity
+	SendNote Channel NoteGb2 Velocity
+	SendNote Channel NoteA2 Velocity
+End
+
+OnNote Any NoteA1 Any
+	Print "vi"
+	SendNote Channel NoteA1 Velocity  # Bass Note
+	SendNote Channel NoteC2 Velocity
+	SendNote Channel NoteF2 Velocity
+	SendNote Channel NoteA2 Velocity
+End
+
+OnNote Any NoteBb1 Any
+	Print "III"
+	SendNote Channel NoteE1 Velocity  # Bass Note
+	SendNote Channel NoteB1 Velocity
+	SendNote Channel NoteE2 Velocity
+	SendNote Channel NoteAb2 Velocity
+End
+
+OnNote Any NoteB1 Any
+	Print "iv"
+	SendNote Channel NoteF1 Velocity  # Bass Note
+	SendNote Channel NoteC2 Velocity
+	SendNote Channel NoteF2 Velocity
+	SendNote Channel NoteAb2 Velocity
+End
+
+OnNote Any NoteC2 Any
+	Print "I"
+	SendNote Channel NoteC1 Velocity  # Bass Note
+	SendNote Channel NoteE2 Velocity
+	SendNote Channel NoteG2 Velocity
+	SendNote Channel NoteC3 Velocity
+End
+
+OnNote Any NoteDb2 Any
+	Print "V7"
+	SendNote Channel NoteG1 Velocity  # Bass Note
+	SendNote Channel NoteD2 Velocity
+	SendNote Channel NoteF2 Velocity
+	SendNote Channel NoteG2 Velocity
+	SendNote Channel NoteB2 Velocity
+End
+
+OnNote Any NoteD2 Any
+	Print "ii"
+	SendNote Channel NoteD1 Velocity  # Bass Note
+	SendNote Channel NoteF2 Velocity
+	SendNote Channel NoteA2 Velocity
+	SendNote Channel NoteD3 Velocity
+End
+
+OnNote Any NoteEb2 Any
+	Print "VI"
+	SendNote Channel NoteA1 Velocity  # Bass Note
+	SendNote Channel NoteE2 Velocity
+	SendNote Channel NoteA2 Velocity
+	SendNote Channel NoteDb3 Velocity
+End
+
+OnNote Any NoteE2 Any
+	Print "iii"
+	SendNote Channel NoteE1 Velocity  # Bass Note
+	SendNote Channel NoteE2 Velocity
+	SendNote Channel NoteG2 Velocity
+	SendNote Channel NoteB2 Velocity
+End
+
+OnNote Any NoteF2 Any
+	Print "IV"
+	SendNote Channel NoteF1 Velocity  # Bass Note
+	SendNote Channel NoteF2 Velocity
+	SendNote Channel NoteA2 Velocity
+	SendNote Channel NoteC3 Velocity
+End
+
+OnNote Any NoteGb2 Any
+	Print "I7"
+	SendNote Channel NoteC1 Velocity  # Bass Note
+	SendNote Channel NoteE2 Velocity
+	SendNote Channel NoteG2 Velocity
+	SendNote Channel NoteBb2 Velocity
+	SendNote Channel NoteC3 Velocity
+End
+
+OnNote Any NoteG2 Any
+	Print "V"
+	SendNote Channel NoteG1 Velocity  # Bass Note
+	SendNote Channel NoteE2 Velocity
+	SendNote Channel NoteG2 Velocity
+	SendNote Channel NoteB2 Velocity
+End
+
+OnNote Any NoteAb2 Any
+	Print "II"
+	SendNote Channel NoteD1 Velocity  # Bass Note
+	SendNote Channel NoteGb2 Velocity
+	SendNote Channel NoteA2 Velocity
+	SendNote Channel NoteD3 Velocity
+End
+
+OnNote Any NoteA2 Any
+	Print "vi"
+	SendNote Channel NoteA1 Velocity  # Bass Note
+	SendNote Channel NoteF2 Velocity
+	SendNote Channel NoteA2 Velocity
+	SendNote Channel NoteC3 Velocity
+End
+
+OnNote Any NoteBb2 Any
+	Print "III"
+	SendNote Channel NoteE1 Velocity  # Bass Note
+	SendNote Channel NoteE2 Velocity
+	SendNote Channel NoteAb2 Velocity
+	SendNote Channel NoteB2 Velocity
+End
+
+OnNote Any NoteB2 Any
+	Print "iv"
+	SendNote Channel NoteF1 Velocity  # Bass Note
+	SendNote Channel NoteF2 Velocity
+	SendNote Channel NoteAb2 Velocity
+	SendNote Channel NoteC3 Velocity
+End
+
+OnNote Any NoteC3 Any
+	Print "I"
+	SendNote Channel NoteC1 Velocity  # Bass Note
+	SendNote Channel NoteG2 Velocity
+	SendNote Channel NoteC3 Velocity
+	SendNote Channel NoteE3 Velocity
+End
+
+OnNote Any NoteDb3 Any
+	Print "V7"
+	SendNote Channel NoteG1 Velocity  # Bass Note
+	SendNote Channel NoteF2 Velocity
+	SendNote Channel NoteG2 Velocity
+	SendNote Channel NoteB2 Velocity
+	SendNote Channel NoteD3 Velocity
+End
+
+OnNote Any NoteD3 Any
+	Print "ii"
+	SendNote Channel NoteD1 Velocity  # Bass Note
+	SendNote Channel NoteA2 Velocity
+	SendNote Channel NoteD3 Velocity
+	SendNote Channel NoteF3 Velocity
+End
+
+OnNote Any NoteEb3 Any
+	Print "VI"
+	SendNote Channel NoteA1 Velocity  # Bass Note
+	SendNote Channel NoteA2 Velocity
+	SendNote Channel NoteDb3 Velocity
+	SendNote Channel NoteE3 Velocity
+End
+
+OnNote Any NoteE3 Any
+	Print "iii"
+	SendNote Channel NoteE1 Velocity  # Bass Note
+	SendNote Channel NoteG2 Velocity
+	SendNote Channel NoteB2 Velocity
+	SendNote Channel NoteE3 Velocity
+End
+
+OnNote Any NoteF3 Any
+	Print "IV"
+	SendNote Channel NoteF1 Velocity  # Bass Note
+	SendNote Channel NoteA2 Velocity
+	SendNote Channel NoteC3 Velocity
+	SendNote Channel NoteF3 Velocity
+End
+
+OnNote Any NoteGb3 Any
+	Print "I7"
+	SendNote Channel NoteC1 Velocity  # Bass Note
+	SendNote Channel NoteG2 Velocity
+	SendNote Channel NoteBb2 Velocity
+	SendNote Channel NoteC3 Velocity
+	SendNote Channel NoteE3 Velocity
+End
+
+OnNote Any NoteG3 Any
+	Print "V"
+	SendNote Channel NoteG1 Velocity  # Bass Note
+	SendNote Channel NoteG2 Velocity
+	SendNote Channel NoteB2 Velocity
+	SendNote Channel NoteE3 Velocity
+End
+
+OnNote Any NoteAb3 Any
+	Print "II"
+	SendNote Channel NoteD1 Velocity  # Bass Note
+	SendNote Channel NoteA2 Velocity
+	SendNote Channel NoteD3 Velocity
+	SendNote Channel NoteGb3 Velocity
+End
+
+OnNote Any NoteA3 Any
+	Print "vi"
+	SendNote Channel NoteA1 Velocity  # Bass Note
+	SendNote Channel NoteA2 Velocity
+	SendNote Channel NoteC3 Velocity
+	SendNote Channel NoteF3 Velocity
+End
+
+OnNote Any NoteBb3 Any
+	Print "III"
+	SendNote Channel NoteE1 Velocity  # Bass Note
+	SendNote Channel NoteAb2 Velocity
+	SendNote Channel NoteB2 Velocity
+	SendNote Channel NoteE3 Velocity
+End
+
+OnNote Any NoteB3 Any
+	Print "iv"
+	SendNote Channel NoteF1 Velocity  # Bass Note
+	SendNote Channel NoteAb2 Velocity
+	SendNote Channel NoteC3 Velocity
+	SendNote Channel NoteF3 Velocity
+End
+
+OnNote Any NoteC4 Any
+	Print "I"
+	SendNote Channel NoteC1 Velocity  # Bass Note
 	SendNote Channel NoteC3 Velocity
 	SendNote Channel NoteE3 Velocity
 	SendNote Channel NoteG3 Velocity
 End
 
-OnNote Any NoteDb1 Any
+OnNote Any NoteDb4 Any
+	Print "V7"
+	SendNote Channel NoteG1 Velocity  # Bass Note
+	SendNote Channel NoteG2 Velocity
 	SendNote Channel NoteB2 Velocity
 	SendNote Channel NoteD3 Velocity
 	SendNote Channel NoteF3 Velocity
-	SendNote Channel NoteG3 Velocity
 End
 
-OnNote Any NoteD1 Any
+OnNote Any NoteD4 Any
+	Print "ii"
+	SendNote Channel NoteD1 Velocity  # Bass Note
 	SendNote Channel NoteD3 Velocity
 	SendNote Channel NoteF3 Velocity
 	SendNote Channel NoteA3 Velocity
 End
 
-OnNote Any NoteEb1 Any
+OnNote Any NoteEb4 Any
+	Print "VI"
+	SendNote Channel NoteA1 Velocity  # Bass Note
 	SendNote Channel NoteDb3 Velocity
 	SendNote Channel NoteE3 Velocity
 	SendNote Channel NoteA3 Velocity
 End
 
-OnNote Any NoteE1 Any
-	SendNote Channel NoteB2 Velocity
-	SendNote Channel NoteE3 Velocity
-	SendNote Channel NoteG3 Velocity
-End
-
-OnNote Any NoteF1 Any
-	SendNote Channel NoteC3 Velocity
-	SendNote Channel NoteF3 Velocity
-	SendNote Channel NoteA3 Velocity
-End
-
-OnNote Any NoteGb1 Any
-	SendNote Channel NoteC3 Velocity
-	SendNote Channel NoteE3 Velocity
-	SendNote Channel NoteG3 Velocity
-	SendNote Channel NoteBb3 Velocity
-End
-
-OnNote Any NoteG1 Any
-	SendNote Channel NoteB2 Velocity
-	SendNote Channel NoteE3 Velocity
-	SendNote Channel NoteG3 Velocity
-End
-
-OnNote Any NoteAb1 Any
-	SendNote Channel NoteD3 Velocity
-	SendNote Channel NoteGb3 Velocity
-	SendNote Channel NoteA3 Velocity
-End
-
-OnNote Any NoteA1 Any
-	SendNote Channel NoteC3 Velocity
-	SendNote Channel NoteF3 Velocity
-	SendNote Channel NoteA3 Velocity
-End
-
-OnNote Any NoteBb1 Any
-	SendNote Channel NoteB2 Velocity
-	SendNote Channel NoteE3 Velocity
-	SendNote Channel NoteAb3 Velocity
-End
-
-OnNote Any NoteB1 Any
-	SendNote Channel NoteC3 Velocity
-	SendNote Channel NoteF3 Velocity
-	SendNote Channel NoteAb3 Velocity
-End
-
-OnNote Any NoteC2 Any
-	SendNote Channel NoteE3 Velocity
-	SendNote Channel NoteG3 Velocity
-	SendNote Channel NoteC4 Velocity
-End
-
-OnNote Any NoteDb2 Any
-	SendNote Channel NoteD3 Velocity
-	SendNote Channel NoteF3 Velocity
-	SendNote Channel NoteG3 Velocity
-	SendNote Channel NoteB3 Velocity
-End
-
-OnNote Any NoteD2 Any
-	SendNote Channel NoteF3 Velocity
-	SendNote Channel NoteA3 Velocity
-	SendNote Channel NoteD4 Velocity
-End
-
-OnNote Any NoteEb2 Any
-	SendNote Channel NoteE3 Velocity
-	SendNote Channel NoteA3 Velocity
-	SendNote Channel NoteDb4 Velocity
-End
-
-OnNote Any NoteE2 Any
-	SendNote Channel NoteE3 Velocity
-	SendNote Channel NoteG3 Velocity
-	SendNote Channel NoteB3 Velocity
-End
-
-OnNote Any NoteF2 Any
-	SendNote Channel NoteF3 Velocity
-	SendNote Channel NoteA3 Velocity
-	SendNote Channel NoteC4 Velocity
-End
-
-OnNote Any NoteGb2 Any
-	SendNote Channel NoteE3 Velocity
-	SendNote Channel NoteG3 Velocity
-	SendNote Channel NoteBb3 Velocity
-	SendNote Channel NoteC4 Velocity
-End
-
-OnNote Any NoteG2 Any
-	SendNote Channel NoteE3 Velocity
-	SendNote Channel NoteG3 Velocity
-	SendNote Channel NoteB3 Velocity
-End
-
-OnNote Any NoteAb2 Any
-	SendNote Channel NoteGb3 Velocity
-	SendNote Channel NoteA3 Velocity
-	SendNote Channel NoteD4 Velocity
-End
-
-OnNote Any NoteA2 Any
-	SendNote Channel NoteF3 Velocity
-	SendNote Channel NoteA3 Velocity
-	SendNote Channel NoteC4 Velocity
-End
-
-OnNote Any NoteBb2 Any
-	SendNote Channel NoteE3 Velocity
-	SendNote Channel NoteAb3 Velocity
-	SendNote Channel NoteB3 Velocity
-End
-
-OnNote Any NoteB2 Any
-	SendNote Channel NoteF3 Velocity
-	SendNote Channel NoteAb3 Velocity
-	SendNote Channel NoteC4 Velocity
-End
-
-OnNote Any NoteC3 Any
-	SendNote Channel NoteG3 Velocity
-	SendNote Channel NoteC4 Velocity
-	SendNote Channel NoteE4 Velocity
-End
-
-OnNote Any NoteDb3 Any
-	SendNote Channel NoteF3 Velocity
-	SendNote Channel NoteG3 Velocity
-	SendNote Channel NoteB3 Velocity
-	SendNote Channel NoteD4 Velocity
-End
-
-OnNote Any NoteD3 Any
-	SendNote Channel NoteA3 Velocity
-	SendNote Channel NoteD4 Velocity
-	SendNote Channel NoteF4 Velocity
-End
-
-OnNote Any NoteEb3 Any
-	SendNote Channel NoteA3 Velocity
-	SendNote Channel NoteDb4 Velocity
-	SendNote Channel NoteE4 Velocity
-End
-
-OnNote Any NoteE3 Any
-	SendNote Channel NoteG3 Velocity
-	SendNote Channel NoteB3 Velocity
-	SendNote Channel NoteE4 Velocity
-End
-
-OnNote Any NoteF3 Any
-	SendNote Channel NoteA3 Velocity
-	SendNote Channel NoteC4 Velocity
-	SendNote Channel NoteF4 Velocity
-End
-
-OnNote Any NoteGb3 Any
-	SendNote Channel NoteG3 Velocity
-	SendNote Channel NoteBb3 Velocity
-	SendNote Channel NoteC4 Velocity
-	SendNote Channel NoteE4 Velocity
-End
-
-OnNote Any NoteG3 Any
-	SendNote Channel NoteG3 Velocity
-	SendNote Channel NoteB3 Velocity
-	SendNote Channel NoteE4 Velocity
-End
-
-OnNote Any NoteAb3 Any
-	SendNote Channel NoteA3 Velocity
-	SendNote Channel NoteD4 Velocity
-	SendNote Channel NoteGb4 Velocity
-End
-
-OnNote Any NoteA3 Any
-	SendNote Channel NoteA3 Velocity
-	SendNote Channel NoteC4 Velocity
-	SendNote Channel NoteF4 Velocity
-End
-
-OnNote Any NoteBb3 Any
-	SendNote Channel NoteAb3 Velocity
-	SendNote Channel NoteB3 Velocity
-	SendNote Channel NoteE4 Velocity
-End
-
-OnNote Any NoteB3 Any
-	SendNote Channel NoteAb3 Velocity
-	SendNote Channel NoteC4 Velocity
-	SendNote Channel NoteF4 Velocity
-End
-
-OnNote Any NoteC4 Any
-	SendNote Channel NoteC4 Velocity
-	SendNote Channel NoteE4 Velocity
-	SendNote Channel NoteG4 Velocity
-End
-
-OnNote Any NoteDb4 Any
-	SendNote Channel NoteG3 Velocity
-	SendNote Channel NoteB3 Velocity
-	SendNote Channel NoteD4 Velocity
-	SendNote Channel NoteF4 Velocity
-End
-
-OnNote Any NoteD4 Any
-	SendNote Channel NoteD4 Velocity
-	SendNote Channel NoteF4 Velocity
-	SendNote Channel NoteA4 Velocity
-End
-
-OnNote Any NoteEb4 Any
-	SendNote Channel NoteDb4 Velocity
-	SendNote Channel NoteE4 Velocity
-	SendNote Channel NoteA4 Velocity
-End
-
 OnNote Any NoteE4 Any
-	SendNote Channel NoteB3 Velocity
-	SendNote Channel NoteE4 Velocity
-	SendNote Channel NoteG4 Velocity
+	Print "iii"
+	SendNote Channel NoteE1 Velocity  # Bass Note
+	SendNote Channel NoteB2 Velocity
+	SendNote Channel NoteE3 Velocity
+	SendNote Channel NoteG3 Velocity
 End
 
 OnNote Any NoteF4 Any
-	SendNote Channel NoteC4 Velocity
-	SendNote Channel NoteF4 Velocity
-	SendNote Channel NoteA4 Velocity
+	Print "IV"
+	SendNote Channel NoteF1 Velocity  # Bass Note
+	SendNote Channel NoteC3 Velocity
+	SendNote Channel NoteF3 Velocity
+	SendNote Channel NoteA3 Velocity
 End
 
 OnNote Any NoteGb4 Any
-	SendNote Channel NoteBb3 Velocity
-	SendNote Channel NoteC4 Velocity
-	SendNote Channel NoteE4 Velocity
-	SendNote Channel NoteG4 Velocity
+	Print "I7"
+	SendNote Channel NoteC1 Velocity  # Bass Note
+	SendNote Channel NoteBb2 Velocity
+	SendNote Channel NoteC3 Velocity
+	SendNote Channel NoteE3 Velocity
+	SendNote Channel NoteG3 Velocity
 End
 
 OnNote Any NoteG4 Any
-	SendNote Channel NoteB3 Velocity
-	SendNote Channel NoteE4 Velocity
-	SendNote Channel NoteG4 Velocity
+	Print "V"
+	SendNote Channel NoteG1 Velocity  # Bass Note
+	SendNote Channel NoteB2 Velocity
+	SendNote Channel NoteE3 Velocity
+	SendNote Channel NoteG3 Velocity
 End
 
 OnNote Any NoteAb4 Any
-	SendNote Channel NoteD4 Velocity
-	SendNote Channel NoteGb4 Velocity
-	SendNote Channel NoteA4 Velocity
+	Print "II"
+	SendNote Channel NoteD1 Velocity  # Bass Note
+	SendNote Channel NoteD3 Velocity
+	SendNote Channel NoteGb3 Velocity
+	SendNote Channel NoteA3 Velocity
 End
 
 OnNote Any NoteA4 Any
-	SendNote Channel NoteC4 Velocity
-	SendNote Channel NoteF4 Velocity
-	SendNote Channel NoteA4 Velocity
+	Print "vi"
+	SendNote Channel NoteA1 Velocity  # Bass Note
+	SendNote Channel NoteC3 Velocity
+	SendNote Channel NoteF3 Velocity
+	SendNote Channel NoteA3 Velocity
 End
 
 OnNote Any NoteBb4 Any
-	SendNote Channel NoteB3 Velocity
-	SendNote Channel NoteE4 Velocity
-	SendNote Channel NoteAb4 Velocity
+	Print "III"
+	SendNote Channel NoteE1 Velocity  # Bass Note
+	SendNote Channel NoteB2 Velocity
+	SendNote Channel NoteE3 Velocity
+	SendNote Channel NoteAb3 Velocity
 End
 
 OnNote Any NoteB4 Any
-	SendNote Channel NoteC4 Velocity
-	SendNote Channel NoteF4 Velocity
-	SendNote Channel NoteAb4 Velocity
+	Print "iv"
+	SendNote Channel NoteF1 Velocity  # Bass Note
+	SendNote Channel NoteC3 Velocity
+	SendNote Channel NoteF3 Velocity
+	SendNote Channel NoteAb3 Velocity
 End
