@@ -69,6 +69,19 @@ OnElse
 End
 ```
 
+### Convert pitch bend to CC parameter change
+
+```
+OnBend Any Any
+  # convert to ControlGeneral5
+  SendLowCC Channel ControlGeneral5 Value
+End
+
+OnElse
+  # anything else, pass it along
+End
+```
+
 Usage
 =====
 
