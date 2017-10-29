@@ -1,0 +1,12 @@
+# (c) Copyright 2017 Sean Connelly (@voidqk) http://syntheti.cc
+# MIT License
+# Project Home: https://github.com/voidqk/midimap
+
+#
+# test for patch
+#
+
+OnPatch Any Any
+	Print Channel Patch
+	SendPatch Channel Patch
+End

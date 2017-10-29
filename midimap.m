@@ -649,9 +649,13 @@ void mapcmds_exe(int size, mapcmd_st *cmds, cmdctx ctx, int dsize, const uint8_t
 			case MC_SENDCHANPRESSURE:
 				TODO("MC_SENDCHANPRESSURE");
 				break;
-			case MC_SENDPATCH:
-				TODO("MC_SENDPATCH");
-				break;
+			case MC_SENDPATCH: {
+				int channel = cmd->args[0].type == MA_VAL_NUM ? cmd->args[0].val.num : ctx.channel;
+				int patch = cmd->args[1].type == MA_VAL_NUM ? cmd->args[1].val.num : ctx.patch;
+				send[0] = 0xC0 | (channel - 1);
+				send[1] = patch;
+				midisend(2, send);
+			} break;
 			case MC_SENDLOWCC: {
 				int channel = cmd->args[0].type == MA_VAL_NUM ? cmd->args[0].val.num : ctx.channel;
 				int control;
@@ -716,7 +720,15 @@ void midimsg(int size, mapfile *mfs, maphandler_type type, cmdctx ctx, int dsize
 					TODO("MH_CHANPRESSURE")
 					break;
 				case MH_PATCH:
-					TODO("MH_PATCH")
+					if ((mh->u.patch.channel == -1 ||
+							(mh->u.patch.channel == -2 && ctx.channel > 0) ||
+							mh->u.patch.channel == ctx.channel) &&
+						(mh->u.patch.patch == -1 ||
+							(mh->u.patch.patch == -2 && ctx.patch > 0) ||
+							mh->u.patch.patch == ctx.patch)){
+						mapcmds_exe(mh->size, mh->cmds, ctx, dsize, data);
+						return;
+					}
 					break;
 				case MH_LOWCC:
 					if ((mh->u.lowcc.channel == -1 ||
@@ -1120,9 +1132,26 @@ void maphandler_parse(char *const *comp, int cs, bool *valid, bool *found, mapha
 		case MH_CHANPRESSURE:
 			TODO("MH_CHANPRESSURE");
 			break;
-		case MH_PATCH:
-			TODO("MH_PATCH");
-			break;
+		case MH_PATCH: {
+			if (cs != 3){
+				fprintf(stderr, "Invalid format for OnPatch handler\n");
+				return;
+			}
+			int channel = anyint(comp[1]);
+			if (channel < -2){
+				fprintf(stderr, "Invalid channel for OnPatch handler: %s\n", comp[1]);
+				return;
+			}
+			int patch = anyint(comp[2]);
+			if (patch < -2){
+				fprintf(stderr, "Invalid value for OnPatch handler: %s\n", comp[2]);
+				return;
+			}
+			*valid = true;
+			mh->type = MH_PATCH;
+			mh->u.patch.channel = channel;
+			mh->u.patch.patch = patch;
+		} return;
 		case MH_LOWCC: {
 			if (cs != 4){
 				fprintf(stderr, "Invalid format for OnLowCC handler\n");
@@ -1218,9 +1247,26 @@ void mapcmd_parse(maphandler_type mht, char *const *comp, int cs, bool *valid, b
 	int args_size = 0;
 	maparg_st *args = NULL;
 
+	int mht_mask = 0;
+	switch (mht){
+		case MH_NOTE        : mht_mask = MA_CHANNEL | MA_NOTE | MA_VELOCITY; break;
+		case MH_BEND        : mht_mask = MA_CHANNEL | MA_BEND              ; break;
+		case MH_NOTEPRESSURE: mht_mask = MA_CHANNEL | MA_NOTE | MA_PRESSURE; break;
+		case MH_CHANPRESSURE: mht_mask = MA_CHANNEL | MA_PRESSURE          ; break;
+		case MH_PATCH       : mht_mask = MA_CHANNEL | MA_PATCH             ; break;
+		case MH_LOWCC       : mht_mask = MA_CHANNEL | MA_CONTROL | MA_VALUE; break;
+		case MH_HIGHCC      : mht_mask = MA_CHANNEL | MA_CONTROL | MA_VALUE; break;
+		case MH_RPN         : mht_mask = MA_CHANNEL | MA_RPN | MA_VALUE    ; break;
+		case MH_NRPN        : mht_mask = MA_CHANNEL | MA_NRPN | MA_VALUE   ; break;
+		case MH_ALLSOUNDOFF : mht_mask = MA_CHANNEL                        ; break;
+		case MH_ALLNOTESOFF : mht_mask = MA_CHANNEL                        ; break;
+		case MH_RESET       : mht_mask = MA_CHANNEL                        ; break;
+		case MH_ELSE        : mht_mask = 0                                 ; break;
+	}
+
 	#define ADD_ARG(str, allow_mask)  do{                                        \
 			maparg_st ma;                                                        \
-			if (!maparg_parse(str, allow_mask, &ma)){                            \
+			if (!maparg_parse(str, (allow_mask) & mht_mask, &ma)){               \
 				fprintf(stderr, "Invalid argument for %s: %s\n", comp[0], str);  \
 				goto fail;                                                       \
 			}                                                                    \
@@ -1246,23 +1292,6 @@ void mapcmd_parse(maphandler_type mht, char *const *comp, int cs, bool *valid, b
 			return;                \
 		} while (false)
 
-	int mht_mask = 0;
-	switch (mht){
-		case MH_NOTE        : mht_mask = MA_CHANNEL | MA_NOTE | MA_VELOCITY; break;
-		case MH_BEND        : mht_mask = MA_CHANNEL | MA_BEND              ; break;
-		case MH_NOTEPRESSURE: mht_mask = MA_CHANNEL | MA_NOTE | MA_PRESSURE; break;
-		case MH_CHANPRESSURE: mht_mask = MA_CHANNEL | MA_PRESSURE          ; break;
-		case MH_PATCH       : mht_mask = MA_CHANNEL | MA_PATCH             ; break;
-		case MH_LOWCC       : mht_mask = MA_CHANNEL | MA_CONTROL | MA_VALUE; break;
-		case MH_HIGHCC      : mht_mask = MA_CHANNEL | MA_CONTROL | MA_VALUE; break;
-		case MH_RPN         : mht_mask = MA_CHANNEL | MA_RPN | MA_VALUE    ; break;
-		case MH_NRPN        : mht_mask = MA_CHANNEL | MA_NRPN | MA_VALUE   ; break;
-		case MH_ALLSOUNDOFF : mht_mask = MA_CHANNEL                        ; break;
-		case MH_ALLNOTESOFF : mht_mask = MA_CHANNEL                        ; break;
-		case MH_RESET       : mht_mask = MA_CHANNEL                        ; break;
-		case MH_ELSE        : mht_mask = 0                                 ; break;
-	}
-
 	switch (mct){
 		case MC_PRINT: {
 			int mask = mht_mask | MA_VAL_NUM | MA_VAL_STR | MA_VAL_NOTE | MA_VAL_LOWCC |
@@ -1282,6 +1311,7 @@ void mapcmd_parse(maphandler_type mht, char *const *comp, int cs, bool *valid, b
 				fprintf(stderr, "Invalid format for SendNote command\n");
 				return;
 			}
+			mht_mask |= MA_VAL_NUM | MA_VAL_NOTE;
 			ADD_ARG(comp[1], MA_VAL_NUM | MA_CHANNEL);
 			CHECK_RANGE(1, 16);
 			ADD_ARG(comp[2], MA_VAL_NOTE | MA_NOTE);
@@ -1298,13 +1328,22 @@ void mapcmd_parse(maphandler_type mht, char *const *comp, int cs, bool *valid, b
 			TODO("MC_SENDCHANPRESSURE");
 			break;
 		case MC_SENDPATCH:
-			TODO("MC_SENDPATCH");
-			break;
+			if (cs != 3){
+				fprintf(stderr, "Invalid format for SendPatch command\n");
+				return;
+			}
+			mht_mask |= MA_VAL_NUM;
+			ADD_ARG(comp[1], MA_VAL_NUM | MA_CHANNEL);
+			CHECK_RANGE(1, 16);
+			ADD_ARG(comp[2], MA_VAL_NUM | MA_PATCH);
+			CHECK_RANGE(0, 127);
+			DONE();
 		case MC_SENDLOWCC:
 			if (cs != 4){
 				fprintf(stderr, "Invalid format for SendLowCC command\n");
 				return;
 			}
+			mht_mask |= MA_VAL_NUM | MA_VAL_LOWCC;
 			ADD_ARG(comp[1], MA_VAL_NUM | MA_CHANNEL);
 			CHECK_RANGE(1, 16);
 			ADD_ARG(comp[2], MA_VAL_LOWCC | MA_CONTROL);
