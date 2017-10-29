@@ -97,6 +97,34 @@ OnElse
 End
 ```
 
+### Send channel 1 notes to all other channels
+
+```
+OnNote 1 Any Any
+  SendCopy # send to channel 1
+  SendNote  2 Note Value
+  SendNote  3 Note Value
+  SendNote  4 Note Value
+  SendNote  5 Note Value
+  SendNote  6 Note Value
+  SendNote  7 Note Value
+  SendNote  8 Note Value
+  SendNote  9 Note Value
+  SendNote 10 Note Value
+  SendNote 11 Note Value
+  SendNote 12 Note Value
+  SendNote 13 Note Value
+  SendNote 14 Note Value
+  SendNote 15 Note Value
+  SendNote 16 Note Value
+End
+
+OnElse
+  # anything else, pass it along
+  SendCopy
+End
+```
+
 Usage
 =====
 
