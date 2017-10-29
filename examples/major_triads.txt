@@ -6,13 +6,7 @@
 # converts notes into major triads from C3-B3
 #
 
-OnNote Any NoteC2 Any
-	Print "Copy" RawData
-	SendCopy
-End
-
 OnNote Any NoteC3 Any
-	Print "Hello World" Velocity "What's up"
 	SendNote Channel NoteC3 Velocity
 	SendNote Channel NoteE3 Velocity
 	SendNote Channel NoteG3 Velocity

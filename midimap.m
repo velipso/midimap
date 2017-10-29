@@ -715,8 +715,8 @@ void midimsg(int size, mapfile *mfs, maphandler_type type, cmdctx ctx, int dsize
 					TODO("MH_RESET")
 					break;
 				case MH_ELSE:
-					TODO("MH_ELSE")
-					break;
+					mapcmds_exe(mh->size, mh->cmds, ctx, dsize, data);
+					return;
 			}
 		}
 	}
@@ -1091,8 +1091,13 @@ void maphandler_parse(char *const *comp, int cs, bool *valid, bool *found, mapha
 			TODO("MH_RESET");
 			break;
 		case MH_ELSE:
-			TODO("MH_ELSE");
-			break;
+			if (cs != 1){
+				fprintf(stderr, "Invalid format for OnElse handler\n");
+				return;
+			}
+			*valid = true;
+			mh->type = MH_ELSE;
+			return;
 	}
 }
 
