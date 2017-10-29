@@ -695,9 +695,13 @@ void midimsg(int size, mapfile *mfs, maphandler_type type, cmdctx ctx, int dsize
 				continue;
 			switch (type){
 				case MH_NOTE:
-					if ((mh->u.note.channel == -1 || mh->u.note.channel == ctx.channel) &&
+					if ((mh->u.note.channel == -1 ||
+							(mh->u.note.channel == -2 && ctx.channel > 0) ||
+							mh->u.note.channel == ctx.channel) &&
 						(mh->u.note.note == -1 || mh->u.note.note == ctx.note) &&
-						(mh->u.note.velocity == -1 || mh->u.note.velocity == ctx.velocity)){
+						(mh->u.note.velocity == -1 ||
+							(mh->u.note.velocity == -2 && ctx.velocity > 0) ||
+							mh->u.note.velocity == ctx.velocity)){
 						mapcmds_exe(mh->size, mh->cmds, ctx, dsize, data);
 						return;
 					}
@@ -715,9 +719,13 @@ void midimsg(int size, mapfile *mfs, maphandler_type type, cmdctx ctx, int dsize
 					TODO("MH_PATCH")
 					break;
 				case MH_LOWCC:
-					if ((mh->u.lowcc.channel == -1 || mh->u.lowcc.channel == ctx.channel) &&
+					if ((mh->u.lowcc.channel == -1 ||
+							(mh->u.lowcc.channel == -2 && ctx.channel > 0) ||
+							mh->u.lowcc.channel == ctx.channel) &&
 						(mh->u.lowcc.control == LCC__Any || mh->u.lowcc.control == ctx.lowcc) &&
-						(mh->u.lowcc.value == -1 || mh->u.lowcc.value == ctx.value)){
+						(mh->u.lowcc.value == -1 ||
+							(mh->u.lowcc.value == -2 && ctx.value > 0) ||
+							mh->u.lowcc.value == ctx.value)){
 						mapcmds_exe(mh->size, mh->cmds, ctx, dsize, data);
 						return;
 					}
@@ -911,10 +919,12 @@ bool parseint(const char *str, int *out){
 int anyint(const char *str){
 	if (strcmp(str, "Any") == 0)
 		return -1;
+	if (strcmp(str, "Positive") == 0)
+		return -2;
 	int ret;
 	if (parseint(str, &ret))
 		return ret;
-	return -2;
+	return -3;
 }
 
 char *trim(char *line){
@@ -1080,8 +1090,8 @@ void maphandler_parse(char *const *comp, int cs, bool *valid, bool *found, mapha
 				fprintf(stderr, "Invalid format for OnNote handler\n");
 				return;
 			}
-			int channel  = anyint(comp[1]);
-			if (channel < -1){
+			int channel = anyint(comp[1]);
+			if (channel < -2){
 				fprintf(stderr, "Invalid channel for OnNote handler: %s\n", comp[1]);
 				return;
 			}
@@ -1091,7 +1101,7 @@ void maphandler_parse(char *const *comp, int cs, bool *valid, bool *found, mapha
 				return;
 			}
 			int velocity = anyint(comp[3]);
-			if (velocity < -1){
+			if (velocity < -2){
 				fprintf(stderr, "Invalid velocity for OnNote handler: %s\n", comp[3]);
 				return;
 			}
@@ -1119,7 +1129,7 @@ void maphandler_parse(char *const *comp, int cs, bool *valid, bool *found, mapha
 				return;
 			}
 			int channel = anyint(comp[1]);
-			if (channel < -1){
+			if (channel < -2){
 				fprintf(stderr, "Invalid channel for OnLowCC handler: %s\n", comp[1]);
 				return;
 			}
@@ -1129,7 +1139,7 @@ void maphandler_parse(char *const *comp, int cs, bool *valid, bool *found, mapha
 				return;
 			}
 			int value = anyint(comp[3]);
-			if (value < -1){
+			if (value < -2){
 				fprintf(stderr, "Invalid value for OnLowCC handler: %s\n", comp[3]);
 				return;
 			}
@@ -1498,10 +1508,11 @@ int main(int argc, char **argv){
 			"  channel 16.\n"
 			"\n"
 			"  The first line is what message to intercept, and the matching criteria\n"
-			"  for the message.  Criteria can be a literal value, or `Any` which matches\n"
-			"  anything.  Inside the handler, the instructions are executed in order using\n"
-			"  raw values (\"Received:\", 16, NoteC4) or values dependant on the original\n"
-			"  message (Channel, Note, Velocity).\n"
+			"  for the message.  Criteria can be a literal value, `Any` which matches\n"
+			"  anything, or `Positive` for a number greater than zero.  Inside the handler,\n"
+			"  the instructions are executed in order using raw values (\"Received:\", 16,\n"
+			"  NoteC4) or values dependant on the original message (Channel, Note,\n"
+			"  Velocity).\n"
 			"\n"
 			"  Any line that begins with a `#` is ignored and considered a comment.\n"
 			"\n"

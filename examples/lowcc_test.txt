@@ -6,7 +6,12 @@
 # test for lowcc
 #
 
-OnLowCC Any Any Any
+OnLowCC Any Any Positive
 	Print Channel Control Value
+	SendLowCC Channel Control Value
+End
+
+OnLowCC Any Any 0
+	Print Channel Control "ZERO"
 	SendLowCC Channel Control Value
 End
