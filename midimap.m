@@ -655,12 +655,22 @@ void mapcmds_exe(int size, mapcmd_st *cmds, cmdctx ctx, int dsize, const uint8_t
 				send[2] = (bend >> 7) & 0x7F;
 				midisend(3, send);
 			} break;
-			case MC_SENDNOTEPRESSURE:
-				TODO("MC_SENDNOTEPRESSURE");
-				break;
-			case MC_SENDCHANPRESSURE:
-				TODO("MC_SENDCHANPRESSURE");
-				break;
+			case MC_SENDNOTEPRESSURE: {
+				int channel = cmd->args[0].type == MA_VAL_NUM ? cmd->args[0].val.num : ctx.channel;
+				int note = cmd->args[1].type == MA_VAL_NOTE ? cmd->args[1].val.note : ctx.note;
+				int pres = cmd->args[2].type == MA_VAL_NUM ? cmd->args[2].val.num : ctx.lvalue;
+				send[0] = 0xA0 | (channel - 1);
+				send[1] = note;
+				send[2] = pres;
+				midisend(3, send);
+			} break;
+			case MC_SENDCHANPRESSURE: {
+				int channel = cmd->args[0].type == MA_VAL_NUM ? cmd->args[0].val.num : ctx.channel;
+				int pres = cmd->args[1].type == MA_VAL_NUM ? cmd->args[1].val.num : ctx.lvalue;
+				send[0] = 0xD0 | (channel - 1);
+				send[1] = pres;
+				midisend(2, send);
+			} break;
 			case MC_SENDPATCH: {
 				int channel = cmd->args[0].type == MA_VAL_NUM ? cmd->args[0].val.num : ctx.channel;
 				int patch = cmd->args[1].type == MA_VAL_NUM ? cmd->args[1].val.num : ctx.lvalue;
@@ -1595,11 +1605,28 @@ void mapcmd_parse(maphandler_type mht, char *const *comp, int cs, bool *valid, b
 			CHECK_RANGE(0, 16383);
 			DONE();
 		case MC_SENDNOTEPRESSURE:
-			TODO("MC_SENDNOTEPRESSURE");
-			break;
+			if (cs != 4){
+				fprintf(stderr, "Invalid format for SendNotePressure command\n");
+				return;
+			}
+			mht_mask |= MA_VAL_NUM | MA_VAL_NOTE;
+			ADD_ARG(comp[1], MA_VAL_NUM | MA_CHANNEL);
+			CHECK_RANGE(1, 16);
+			ADD_ARG(comp[2], MA_VAL_NOTE | MA_NOTE);
+			ADD_ARG(comp[3], MA_VAL_NUM | MA_VALUE);
+			CHECK_RANGE(0, 127);
+			DONE();
 		case MC_SENDCHANPRESSURE:
-			TODO("MC_SENDCHANPRESSURE");
-			break;
+			if (cs != 3){
+				fprintf(stderr, "Invalid format for SendChanPressure command\n");
+				return;
+			}
+			mht_mask |= MA_VAL_NUM | MA_VAL_NOTE;
+			ADD_ARG(comp[1], MA_VAL_NUM | MA_CHANNEL);
+			CHECK_RANGE(1, 16);
+			ADD_ARG(comp[2], MA_VAL_NUM | MA_VALUE);
+			CHECK_RANGE(0, 127);
+			DONE();
 		case MC_SENDPATCH:
 			if (cs != 3){
 				fprintf(stderr, "Invalid format for SendPatch command\n");
