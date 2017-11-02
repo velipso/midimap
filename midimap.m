@@ -834,10 +834,27 @@ void midimsg(int size, mapfile *mfs, maphandler_type type, cmdctx ctx, int dsize
 					}
 					break;
 				case MH_NOTEPRESSURE:
-					TODO("MH_NOTEPRESSURE")
+					if ((mh->u.notepressure.channel == -1 ||
+							(mh->u.notepressure.channel == -2 && ctx.channel > 0) ||
+							mh->u.notepressure.channel == ctx.channel) &&
+						(mh->u.notepressure.note == -1 || mh->u.notepressure.note == ctx.note) &&
+						(mh->u.notepressure.pressure == -1 ||
+							(mh->u.notepressure.pressure == -2 && ctx.lvalue > 0) ||
+							mh->u.notepressure.pressure == ctx.lvalue)){
+						mapcmds_exe(mh->size, mh->cmds, ctx, dsize, data);
+						return;
+					}
 					break;
 				case MH_CHANPRESSURE:
-					TODO("MH_CHANPRESSURE")
+					if ((mh->u.chanpressure.channel == -1 ||
+							(mh->u.chanpressure.channel == -2 && ctx.channel > 0) ||
+							mh->u.chanpressure.channel == ctx.channel) &&
+						(mh->u.chanpressure.pressure == -1 ||
+							(mh->u.chanpressure.pressure == -2 && ctx.lvalue > 0) ||
+							mh->u.chanpressure.pressure == ctx.lvalue)){
+						mapcmds_exe(mh->size, mh->cmds, ctx, dsize, data);
+						return;
+					}
 					break;
 				case MH_PATCH:
 					if ((mh->u.patch.channel == -1 ||
@@ -1344,12 +1361,52 @@ void maphandler_parse(char *const *comp, int cs, bool *valid, bool *found, mapha
 			mh->u.bend.channel = channel;
 			mh->u.bend.bend = bend;
 		} return;
-		case MH_NOTEPRESSURE:
-			TODO("MH_NOTEPRESSURE");
-			break;
-		case MH_CHANPRESSURE:
-			TODO("MH_CHANPRESSURE");
-			break;
+		case MH_NOTEPRESSURE: {
+			if (cs != 4){
+				fprintf(stderr, "Invalid format for OnNotePressure handler\n");
+				return;
+			}
+			int channel = anyint(comp[1]);
+			if (channel < -2){
+				fprintf(stderr, "Invalid channel for OnNotePressure handler: %s\n", comp[1]);
+				return;
+			}
+			int note = note_fromname(comp[2]);
+			if (note < -1){
+				fprintf(stderr, "Invalid note for OnNotePressure handler: %s\n", comp[2]);
+				return;
+			}
+			int pressure = anyint(comp[3]);
+			if (pressure < -2){
+				fprintf(stderr, "Invalid pressure for OnNotePressure handler: %s\n", comp[3]);
+				return;
+			}
+			*valid = true;
+			mh->type = MH_NOTEPRESSURE;
+			mh->u.notepressure.channel = channel;
+			mh->u.notepressure.note = note;
+			mh->u.notepressure.pressure = pressure;
+		} return;
+		case MH_CHANPRESSURE: {
+			if (cs != 3){
+				fprintf(stderr, "Invalid format for OnChanPressure handler\n");
+				return;
+			}
+			int channel = anyint(comp[1]);
+			if (channel < -2){
+				fprintf(stderr, "Invalid channel for OnChanPressure handler: %s\n", comp[1]);
+				return;
+			}
+			int pressure = anyint(comp[2]);
+			if (pressure < -2){
+				fprintf(stderr, "Invalid value for OnChanPressure handler: %s\n", comp[2]);
+				return;
+			}
+			*valid = true;
+			mh->type = MH_CHANPRESSURE;
+			mh->u.chanpressure.channel = channel;
+			mh->u.chanpressure.pressure = pressure;
+		} return;
 		case MH_PATCH: {
 			if (cs != 3){
 				fprintf(stderr, "Invalid format for OnPatch handler\n");
