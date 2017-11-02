@@ -152,10 +152,8 @@ Input Devices:
     Source 5: "Pads"
 
   Sources can be specified using the name:
-    # selects the source named "Keyboard A"
     midimap -m "Keyboard A" <mapfile>
   Or the source index:
-    # selects source index 5
     midimap -m 5 <mapfile>
 
 Map Files:
@@ -277,10 +275,10 @@ Map Files:
                                     RPNRoll             (3D/08)
 
   Commands:
-    Print "Message", "Another", ...              Print values to console
+    Print "Message" "Another" ...                Print values to console
       (`Print RawData` will print the raw bytes received in hexadecimal)
     SendCopy                                     Send a copy of the message
-    SendNote         <Channel> <Note> <Value>
+    SendNote         <Channel> <Note> <Value>    Send a note message, etc
       (Use 0 for Value to send note off)
     SendBend         <Channel> <Value>
     SendNotePressure <Channel> <Note> <Value>

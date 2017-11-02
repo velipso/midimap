@@ -573,13 +573,14 @@ void catchdone(int dummy){
 
 MIDIEndpointRef midiout;
 MIDITimeStamp tsnow;
+mach_timebase_info_data_t tsbase;
 
 void midisend(int size, const uint8_t *data){
 	//printf("send:"); for (int i = 0; i < size; i++) printf(" %02X", data[i]); printf("\n");
 	static uint8_t buffer[1000];
 	MIDIPacketList *pkl = (MIDIPacketList *)buffer;
 	MIDIPacket *pk = MIDIPacketListInit(pkl);
-	MIDIPacketListAdd(pkl, sizeof(buffer), pk, tsnow, size, data);
+	MIDIPacketListAdd(pkl, sizeof(buffer), pk, mach_absolute_time(), size, data);
 	OSStatus st = MIDIReceived(midiout, pkl);
 	if (st != 0)
 		fprintf(stderr, "Failed to send MIDI message\n");
@@ -599,7 +600,7 @@ typedef struct {
 } cmdctx;
 
 void mapcmds_exe(int size, mapcmd_st *cmds, cmdctx ctx, int dsize, const uint8_t *data){
-	uint8_t send[10];
+	uint8_t send[18];
 	for (int c = 0; c < size; c++){
 		mapcmd cmd = &cmds[c];
 		switch (cmd->type){
@@ -697,12 +698,74 @@ void mapcmds_exe(int size, mapcmd_st *cmds, cmdctx ctx, int dsize, const uint8_t
 				else
 					midisend(3, send);
 			} break;
-			case MC_SENDRPN:
-				TODO("MC_SENDRPN");
-				break;
-			case MC_SENDNRPN:
-				TODO("MC_SENDNRPN");
-				break;
+			case MC_SENDRPN: {
+				int channel = cmd->args[0].type == MA_VAL_NUM ? cmd->args[0].val.num : ctx.channel;
+				int rpn1, rpn2;
+				rpn_midi(cmd->args[1].type == MA_VAL_RPN ? cmd->args[1].val.rpn : ctx.rpn,
+					&rpn1, &rpn2);
+				int value = cmd->args[2].type == MA_VAL_NUM ? cmd->args[2].val.num : ctx.hvalue;
+				send[0] = send[3] = send[6] = 0xB0 | (channel - 1);
+				send[1] = 0x65;
+				send[2] = rpn1;
+				send[4] = 0x64;
+				send[5] = rpn2;
+				send[7] = 0x06;
+				send[8] = (value >> 7) & 0x7F;
+				if ((value & 0x7F) != 0){
+					send[ 9] = 0xB0 | (channel - 1);
+					send[10] = 0x26;
+					send[11] = value & 0x7F;
+					// select NULL
+					send[12] = send[15] = 0xB0 | (channel - 1);
+					send[13] = 0x65;
+					send[14] = 0x7F;
+					send[16] = 0x64;
+					send[17] = 0x7F;
+					midisend(18, send);
+				}
+				else{
+					// select NULL
+					send[ 9] = send[12] = 0xB0 | (channel - 1);
+					send[10] = 0x65;
+					send[11] = 0x7F;
+					send[13] = 0x64;
+					send[14] = 0x7F;
+					midisend(15, send);
+				}
+			} break;
+			case MC_SENDNRPN: {
+				int channel = cmd->args[0].type == MA_VAL_NUM ? cmd->args[0].val.num : ctx.channel;
+				int nrpn = cmd->args[1].type == MA_VAL_NUM ? cmd->args[1].val.num : ctx.hvalue;
+				int value = cmd->args[2].type == MA_VAL_NUM ? cmd->args[2].val.num : ctx.hvalue;
+				send[0] = send[3] = send[6] = 0xB0 | (channel - 1);
+				send[1] = 0x63;
+				send[2] = (nrpn >> 7) & 0x7F;
+				send[4] = 0x62;
+				send[5] = nrpn & 0x7F;
+				send[7] = 0x06;
+				send[8] = (value >> 7) & 0x7F;
+				if ((value & 0x7F) != 0){
+					send[ 9] = 0xB0 | (channel - 1);
+					send[10] = 0x26;
+					send[11] = value & 0x7F;
+					// select NULL
+					send[12] = send[15] = 0xB0 | (channel - 1);
+					send[13] = 0x63;
+					send[14] = 0x7F;
+					send[16] = 0x62;
+					send[17] = 0x7F;
+					midisend(18, send);
+				}
+				else{
+					// select NULL
+					send[ 9] = send[12] = 0xB0 | (channel - 1);
+					send[10] = 0x63;
+					send[11] = 0x7F;
+					send[13] = 0x62;
+					send[14] = 0x7F;
+					midisend(15, send);
+				}
+			} break;
 			case MC_SENDALLSOUNDOFF: {
 				int channel = cmd->args[0].type == MA_VAL_NUM ? cmd->args[0].val.num : ctx.channel;
 				send[0] = 0xB0 | (channel - 1);
@@ -1573,11 +1636,30 @@ void mapcmd_parse(maphandler_type mht, char *const *comp, int cs, bool *valid, b
 			CHECK_RANGE(0, 16383);
 			DONE();
 		case MC_SENDRPN:
-			TODO("MC_SENDRPN");
-			break;
+			if (cs != 4){
+				fprintf(stderr, "Invalid format for SendRPN command\n");
+				return;
+			}
+			mht_mask |= MA_VAL_NUM | MA_VAL_RPN;
+			ADD_ARG(comp[1], MA_VAL_NUM | MA_CHANNEL);
+			CHECK_RANGE(1, 16);
+			ADD_ARG(comp[2], MA_VAL_RPN | MA_RPN);
+			ADD_ARG(comp[3], MA_VAL_NUM | MA_VALUE);
+			CHECK_RANGE(0, 16383);
+			DONE();
 		case MC_SENDNRPN:
-			TODO("MC_SENDNRPN");
-			break;
+			if (cs != 4){
+				fprintf(stderr, "Invalid format for SendRPN command\n");
+				return;
+			}
+			mht_mask |= MA_VAL_NUM;
+			ADD_ARG(comp[1], MA_VAL_NUM | MA_CHANNEL);
+			CHECK_RANGE(1, 16);
+			ADD_ARG(comp[2], MA_VAL_NUM | MA_VALUE);
+			CHECK_RANGE(0, 16383);
+			ADD_ARG(comp[3], MA_VAL_NUM | MA_VALUE);
+			CHECK_RANGE(0, 16383);
+			DONE();
 		case MC_SENDALLSOUNDOFF:
 			if (cs != 2){
 				fprintf(stderr, "Invalid format for SendAllSoundOff command\n");
@@ -1612,7 +1694,6 @@ void mapcmd_parse(maphandler_type mht, char *const *comp, int cs, bool *valid, b
 			free(args[i].val.str);
 	}
 	free(args);
-	#undef TODO
 	#undef ADD_ARG
 	#undef CHECK_RANGE
 	#undef DONE
@@ -1751,10 +1832,8 @@ int main(int argc, char **argv){
 			"    Source 5: \"Pads\"\n"
 			"\n"
 			"  Sources can be specified using the name:\n"
-			"    # selects the source named \"Keyboard A\"\n"
 			"    midimap -m \"Keyboard A\" <mapfile>\n"
 			"  Or the source index:\n"
-			"    # selects source index 5\n"
 			"    midimap -m 5 <mapfile>\n"
 			"\n"
 			"  For more information on how the mapfile works, run:\n"
@@ -1888,10 +1967,10 @@ int main(int argc, char **argv){
 			"                                    RPNRoll             (3D/08)\n"
 			"\n"
 			"  Commands:\n"
-			"    Print \"Message\", \"Another\", ...              Print values to console\n"
+			"    Print \"Message\" \"Another\" ...                Print values to console\n"
 			"      (`Print RawData` will print the raw bytes received in hexadecimal)\n"
 			"    SendCopy                                         Send a copy of the message\n"
-			"    SendNote         <Channel> <Note> <Value>\n"
+			"    SendNote         <Channel> <Note> <Value>        Send a note message, etc\n"
 			"      (Use 0 for Value to send note off)\n"
 			"    SendBend         <Channel> <Value>\n"
 			"    SendNotePressure <Channel> <Note> <Value>\n"
@@ -2025,7 +2104,7 @@ int main(int argc, char **argv){
 
 	// check if anything needs to be done
 	if (!should_listen){
-		printf("Nothing to do\n");
+		printf("Nothing to do.\n\nFor help, type:\n  midimap --help\n");
 		goto cleanup;
 	}
 
