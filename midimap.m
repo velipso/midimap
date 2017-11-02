@@ -11,10 +11,6 @@
 #include <pthread.h>
 #include <signal.h>
 
-
-#define TODO(s)   fprintf(stderr, "TODO: " s "\n"); abort();
-
-
 #define EACH_LCC(X)      \
 	X(_Any       ,   -1) \
 	X(Pedal      , 0x40) \
@@ -361,6 +357,15 @@ void rpn_midi(rpn_type rpn, int *midi1, int *midi2){
 		EACH_RPN(X)
 		#undef X
 	}
+}
+
+bool rpn_frommidi(int midi, rpn_type *rpn){
+	switch (midi){
+		#define X(name, x, y)  case (((x) << 7) | (y)): *rpn = RPN_ ## name; return true;
+		EACH_RPN(X)
+		#undef X
+	}
+	return false;
 }
 
 const char *note_name(int note){
@@ -892,10 +897,28 @@ void midimsg(int size, mapfile *mfs, maphandler_type type, cmdctx ctx, int dsize
 					}
 					break;
 				case MH_RPN:
-					TODO("MH_RPN")
+					if ((mh->u.rpn.channel == -1 ||
+							(mh->u.rpn.channel == -2 && ctx.channel > 0) ||
+							mh->u.rpn.channel == ctx.channel) &&
+						(mh->u.rpn.rpn == RPN__Any || mh->u.rpn.rpn == ctx.rpn) &&
+						(mh->u.rpn.value == -1 ||
+							(mh->u.rpn.value == -2 && ctx.hvalue > 0) ||
+							mh->u.rpn.value == ctx.hvalue)){
+						mapcmds_exe(mh->size, mh->cmds, ctx, dsize, data);
+						return;
+					}
 					break;
 				case MH_NRPN:
-					TODO("MH_NRPN")
+					if ((mh->u.nrpn.channel == -1 ||
+							(mh->u.nrpn.channel == -2 && ctx.channel > 0) ||
+							mh->u.nrpn.channel == ctx.channel) &&
+						(mh->u.nrpn.nrpn == -1 || mh->u.nrpn.nrpn == ctx.nrpn) &&
+						(mh->u.nrpn.value == -1 ||
+							(mh->u.nrpn.value == -2 && ctx.hvalue > 0) ||
+							mh->u.nrpn.value == ctx.hvalue)){
+						mapcmds_exe(mh->size, mh->cmds, ctx, dsize, data);
+						return;
+					}
 					break;
 				case MH_ALLSOUNDOFF:
 					if ((mh->u.allsoundoff.channel == -1 ||
@@ -932,11 +955,61 @@ void midimsg(int size, mapfile *mfs, maphandler_type type, cmdctx ctx, int dsize
 		midimsg(size, mfs, MH_ELSE, (cmdctx){0}, dsize, data);
 }
 
+// number of parameters to cache
+#define PN_MAX 200
+
+typedef struct {
+	int pn; // 0xFFFF for not used
+	int val;
+} pnval;
+
 typedef struct {
 	mapfile *mfs;
 	int size;
+	int pn; // currently selected N/RPN (bit 15 is set for NRPN, clear for RPN)
 	int cc[32];
+	pnval pns[PN_MAX];
 } midictx_st, *midictx;
+
+#define PN_RPN(v)      (v)
+#define PN_NRPN(v)     (0x4000 | (v))
+#define PN_ISRPN(v)    (((v) & 0x4000) == 0)
+#define PN_ISNULL(v)   (((v) & 0x3FFF) == 0x3FFF)
+
+inline int midictx_getpn(midictx mctx, int pn){
+	for (int p = 0; p < PN_MAX; p++){
+		if (mctx->pns[p].pn == 0xFFFF)
+			return 0; // didn't find a pn
+		else if (mctx->pns[p].pn == pn)
+			return mctx->pns[p].val;
+	}
+	return 0;
+}
+
+inline void midictx_setpn(midictx mctx, int pn, int val){
+	for (int p = 0; p < PN_MAX; p++){
+		if (mctx->pns[p].pn == 0xFFFF){
+			mctx->pns[p].pn = pn;
+			mctx->pns[p].val = val;
+			return;
+		}
+		else if (mctx->pns[p].pn == pn){
+			mctx->pns[p].val = val;
+			return;
+		}
+	}
+}
+
+inline void midictx_init(midictx mctx, int size, mapfile *mfs){
+	mctx->size = size;
+	mctx->mfs = mfs;
+	for (int c = 0; c < 32; c++)
+		mctx->cc[c] = 0;
+	for (int p = 0; p < PN_MAX; p++)
+		mctx->pns[p] = (pnval){ .pn = 0xFFFF };
+	mctx->pn = 0x3FFF;
+	midictx_setpn(mctx, 0, 2 << 7); // set Bend Range to +-2 semitones
+}
 
 inline int ltoh(int low){
 	return (low << 7) | low;
@@ -1017,6 +1090,7 @@ void midiread(const MIDIPacketList *pkl, midictx mctx, void *dummy){
 					}
 					lowcc_type lowcc;
 					highcc_type highcc;
+					int pn_value;
 					bool msb;
 					int index;
 					if (p->data[mi + 1] == 0x78){ // All Sound Off
@@ -1058,6 +1132,56 @@ void midiread(const MIDIPacketList *pkl, midictx mctx, void *dummy){
 							.pvalue = mctx->cc[index],
 							.lvalue = htol(mctx->cc[index]),
 							.hvalue = mctx->cc[index]
+						}, 3, &p->data[mi]);
+					}
+					else if (p->data[mi + 1] == 0x65)
+						mctx->pn = PN_RPN((mctx->pn & 0x7F) | (p->data[mi + 2] << 7));
+					else if (p->data[mi + 1] == 0x64)
+						mctx->pn = PN_RPN((mctx->pn & 0x3F80) | p->data[mi + 2]);
+					else if (p->data[mi + 1] == 0x63)
+						mctx->pn = PN_NRPN((mctx->pn & 0x7F) | (p->data[mi + 2] << 7));
+					else if (p->data[mi + 1] == 0x62)
+						mctx->pn = PN_NRPN((mctx->pn & 0x3F80) | p->data[mi + 2]);
+					else if (p->data[mi + 1] == 0x06){
+						if (!PN_ISNULL(mctx->pn)){
+							pn_value = midictx_getpn(mctx, mctx->pn);
+							pn_value = (pn_value & 0x7F) | (p->data[mi + 2] << 7);
+							midictx_setpn(mctx, mctx->pn, pn_value);
+							goto pn_msg;
+						}
+					}
+					else if (p->data[mi + 1] == 0x26){
+						if (!PN_ISNULL(mctx->pn)){
+							pn_value = midictx_getpn(mctx, mctx->pn);
+							pn_value = (pn_value & 0x3F8) | p->data[mi + 2];
+							midictx_setpn(mctx, mctx->pn, pn_value);
+							goto pn_msg;
+						}
+					}
+					mi += 3;
+					break;
+
+					pn_msg:
+					// midimsg based on mctx->pn and pn_value
+					if (PN_ISRPN(mctx->pn)){
+						rpn_type rpn;
+						if (rpn_frommidi(mctx->pn, &rpn)){
+							midimsg(mfs_size, mfs, MH_RPN, (cmdctx){
+								.channel = (p->data[mi] & 0x0F) + 1,
+								.rpn = rpn,
+								.pvalue = pn_value,
+								.lvalue = htol(pn_value),
+								.hvalue = pn_value
+							}, 3, &p->data[mi]);
+						}
+					}
+					else{
+						midimsg(mfs_size, mfs, MH_NRPN, (cmdctx){
+							.channel = (p->data[mi] & 0x0F) + 1,
+							.nrpn = mctx->pn & 0x3FFF,
+							.pvalue = pn_value,
+							.lvalue = htol(pn_value),
+							.hvalue = pn_value
 						}, 3, &p->data[mi]);
 					}
 					mi += 3;
@@ -1479,12 +1603,58 @@ void maphandler_parse(char *const *comp, int cs, bool *valid, bool *found, mapha
 			mh->u.highcc.control = control;
 			mh->u.highcc.value = value;
 		} return;
-		case MH_RPN:
-			TODO("MH_RPN");
-			break;
-		case MH_NRPN:
-			TODO("MH_NRPN");
-			break;
+		case MH_RPN: {
+			if (cs != 4){
+				fprintf(stderr, "Invalid format for OnRPN handler\n");
+				return;
+			}
+			int channel = anyint(comp[1]);
+			if (channel < -2){
+				fprintf(stderr, "Invalid channel for OnRPN handler: %s\n", comp[1]);
+				return;
+			}
+			rpn_type rpn;
+			if (!rpn_fromname(comp[2], &rpn)){
+				fprintf(stderr, "Invalid RPN for OnRPN handler: %s\n", comp[2]);
+				return;
+			}
+			int value = anyint(comp[3]);
+			if (value < -2){
+				fprintf(stderr, "Invalid value for OnRPN handler: %s\n", comp[3]);
+				return;
+			}
+			*valid = true;
+			mh->type = MH_RPN;
+			mh->u.rpn.channel = channel;
+			mh->u.rpn.rpn = rpn;
+			mh->u.rpn.value = value;
+		} return;
+		case MH_NRPN: {
+			if (cs != 4){
+				fprintf(stderr, "Invalid format for OnNRPN handler\n");
+				return;
+			}
+			int channel = anyint(comp[1]);
+			if (channel < -2){
+				fprintf(stderr, "Invalid channel for OnNRPN handler: %s\n", comp[1]);
+				return;
+			}
+			int nrpn = anyint(comp[2]);
+			if (nrpn < -2){
+				fprintf(stderr, "Invalid NRPN for OnNRPN handler: %s\n", comp[2]);
+				return;
+			}
+			int value = anyint(comp[3]);
+			if (value < -2){
+				fprintf(stderr, "Invalid value for OnNRPN handler: %s\n", comp[3]);
+				return;
+			}
+			*valid = true;
+			mh->type = MH_NRPN;
+			mh->u.nrpn.channel = channel;
+			mh->u.nrpn.nrpn = nrpn;
+			mh->u.nrpn.value = value;
+		} return;
 		case MH_ALLSOUNDOFF: {
 			if (cs != 2){
 				fprintf(stderr, "Invalid format for OnAllSoundOff handler\n");
@@ -2233,11 +2403,7 @@ int main(int argc, char **argv){
 		for (int i = 0; i < srcs_size; i++){
 			if (srcs[i].size <= 0)
 				continue;
-			// intialize midi context
-			srcs[i].mctx.size = srcs[i].size;
-			srcs[i].mctx.mfs = srcs[i].mfs;
-			for (int c = 0; c < 32; c++)
-				srcs[i].mctx.cc[c] = 0;
+			midictx_init(&srcs[i].mctx, srcs[i].size, srcs[i].mfs);
 			MIDIPortRef pref = 0;
 			OSStatus pst = MIDIInputPortCreate(client, (CFStringRef)@"midimap-ip",
 				(MIDIReadProc)midiread, &srcs[i].mctx, &pref);
