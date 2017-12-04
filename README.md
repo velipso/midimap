@@ -182,9 +182,9 @@ Map Files:
   All event handlers end with `End`.
 
   Event Handlers:
-    OnNote         <Channel> <Note> <Velocity>  Note is hit or released
-    OnBend         <Channel> <Bend>             Pitch bend for entire channel
-    OnNotePressure <Channel> <Note> <Pressure>  Aftertouch applied to note
+    OnNote         <Channel> <Note> <Value>     Note is hit or released
+    OnBend         <Channel> <Value>            Pitch bend for entire channel
+    OnNotePressure <Channel> <Note> <Value>     Aftertouch applied to note
     OnChanPressure <Channel> <Pressure>         Aftertouch for entire channel
     OnPatch        <Channel> <Patch>            Program change patch
     OnLowCC        <Channel> <Control> <Value>  Low-res control change
