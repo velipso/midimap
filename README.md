@@ -185,8 +185,8 @@ Map Files:
     OnNote         <Channel> <Note> <Value>     Note is hit or released
     OnBend         <Channel> <Value>            Pitch bend for entire channel
     OnNotePressure <Channel> <Note> <Value>     Aftertouch applied to note
-    OnChanPressure <Channel> <Pressure>         Aftertouch for entire channel
-    OnPatch        <Channel> <Patch>            Program change patch
+    OnChanPressure <Channel> <Value>            Aftertouch for entire channel
+    OnPatch        <Channel> <Value>            Program change patch
     OnLowCC        <Channel> <Control> <Value>  Low-res control change
     OnHighCC       <Channel> <Control> <Value>  High-res control change
     OnRPN          <Channel> <RPN> <Value>      Registered device parameter
