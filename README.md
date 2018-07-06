@@ -130,7 +130,7 @@ Usage
 
 ```
 Usage:
-  midimap [-m "Input Device" <mapfile>]+
+  midimap [-d] [-m "Input Device" <mapfile>]+
 
   With no arguments specified, midimap will simply list the available sources
   for MIDI input.
@@ -142,6 +142,8 @@ Usage:
   The program will output the results to a single virtual MIDI device, named
   in the format of "midimap", "midimap 2", "midimap 3", etc, for each
   copy of the program running.
+
+  Use -d to specify debug mode (verbose logging).
 
 Input Devices:
   The program will always list out the available input devices.  For example:
@@ -155,6 +157,8 @@ Input Devices:
     midimap -m "Keyboard A" <mapfile>
   Or the source index:
     midimap -m 5 <mapfile>
+
+Use -d to specify debug mode (verbose logging)
 
 Map Files:
   Map files consist of a list of event handlers.  If the handler's criteria

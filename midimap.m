@@ -2151,7 +2151,6 @@ int main(int argc, char **argv){
 			"  For more information on how the mapfile works, run:\n"
 			"    midimap --help mapfile\n"
 			"\n"
-			"Use -d to specify debug mode (verbose logging)\n"
 		);
 		return 0;
 	}
@@ -2160,7 +2159,7 @@ int main(int argc, char **argv){
 	if (has_help && argc >= 3 && strcmp(argv[2], "mapfile") == 0){
 		printf(
 			"Usage:\n"
-			"  midimap [-m \"Input Device\" <mapfile>]+\n"
+			"  midimap [-d] [-m \"Input Device\" <mapfile>]+\n"
 			"\n"
 			"Map Files:\n"
 			"  Map files consist of a list of event handlers.  If the handler's criteria\n"
@@ -2308,7 +2307,7 @@ int main(int argc, char **argv){
 	if (has_help){
 		printf(
 			"Usage:\n"
-			"  midimap [-m \"Input Device\" <mapfile>]+\n"
+			"  midimap [-d] [-m \"Input Device\" <mapfile>]+\n"
 			"\n"
 			"  With no arguments specified, midimap will simply list the available sources\n"
 			"  for MIDI input.\n"
@@ -2320,6 +2319,8 @@ int main(int argc, char **argv){
 			"  The program will output the results to a single virtual MIDI device, named\n"
 			"  in the format of \"midimap\", \"midimap 2\", \"midimap 3\", etc, for each\n"
 			"  copy of the program running.\n"
+			"\n"
+			"  Use -d to specify debug mode (verbose logging).\n"
 			"\n"
 			"  For more information on specifying input devices, run:\n"
 			"    midimap --help input\n"
