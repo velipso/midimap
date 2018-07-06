@@ -567,6 +567,7 @@ void midinotify(const MIDINotification *message, void *user){
 }
 
 bool done = true;
+bool verbose = false;
 pthread_mutex_t done_mutex;
 pthread_cond_t done_cond;
 void catchdone(int dummy){
@@ -808,6 +809,52 @@ void mapcmds_exe(int size, mapcmd_st *cmds, cmdctx ctx, int dsize, const uint8_t
 
 void midimsg(int size, mapfile *mfs, maphandler_type type, cmdctx ctx, int dsize,
 	const uint8_t *data){
+	if (verbose){
+		switch (type){
+			case MH_NOTE:
+				printf("# OnNote %d %s %d\n", ctx.channel, note_name(ctx.note), ctx.lvalue);
+				break;
+			case MH_BEND:
+				printf("# OnBend %d %d\n", ctx.channel, ctx.hvalue);
+				break;
+			case MH_NOTEPRESSURE:
+				printf("# OnNotePressure %d %s %d\n", ctx.channel, note_name(ctx.note), ctx.lvalue);
+				break;
+			case MH_CHANPRESSURE:
+				printf("# OnChanPressure %d %d\n", ctx.channel, ctx.lvalue);
+				break;
+			case MH_PATCH:
+				printf("# OnPatch %d %d\n", ctx.channel, ctx.lvalue);
+				break;
+			case MH_LOWCC:
+				printf("# OnLowCC %d %s %d\n", ctx.channel, lowcc_name(ctx.lowcc), ctx.lvalue);
+				break;
+			case MH_HIGHCC:
+				printf("# OnHighCC %d %s %d\n", ctx.channel, highcc_name(ctx.highcc), ctx.hvalue);
+				break;
+			case MH_RPN:
+				printf("# OnRPN %d %s %d\n", ctx.channel, rpn_name(ctx.rpn), ctx.hvalue);
+				break;
+			case MH_NRPN:
+				printf("# OnNRPN %d %d %d\n", ctx.channel, ctx.nrpn, ctx.hvalue);
+				break;
+			case MH_ALLSOUNDOFF:
+				printf("# OnAllSoundOff %d\n", ctx.channel);
+				break;
+			case MH_ALLNOTESOFF:
+				printf("# OnAllNotesOff %d\n", ctx.channel);
+				break;
+			case MH_RESET:
+				printf("# OnReset %d\n", ctx.channel);
+				break;
+			case MH_ELSE:
+				printf("# OnElse ## RawData = ");
+				for (int i = 0; i < dsize; i++)
+					printf("%c%02X", i == 0 ? '[' : ' ', data[i]);
+				printf("]\n");
+				break;
+		}
+	}
 	for (int m = 0; m < size; m++){
 		mapfile mf = mfs[m];
 		for (int h = 0; h < mf->size; h++){
@@ -951,8 +998,12 @@ void midimsg(int size, mapfile *mfs, maphandler_type type, cmdctx ctx, int dsize
 		}
 	}
 	// nothing got it, so see if OnElse should get it
-	if (type != MH_ELSE)
+	if (type != MH_ELSE){
+		bool old_verbose = verbose;
+		verbose = false;
 		midimsg(size, mfs, MH_ELSE, (cmdctx){0}, dsize, data);
+		verbose = old_verbose;
+	}
 }
 
 // number of parameters to cache
@@ -2065,6 +2116,13 @@ int main(int argc, char **argv){
 		return 0; // already printed, so just exit immediately
 	printf("\n");
 
+	// look for -d (debug mode) before everything else
+	if (argc >= 2 && strcmp(argv[1], "-d") == 0){
+		verbose = true;
+		argc--;
+		argv = &argv[1];
+	}
+
 	bool has_help = argc >= 2 && (
 		strcmp(argv[1], "help") == 0 ||
 		strcmp(argv[1], "-help") == 0 ||
@@ -2075,7 +2133,7 @@ int main(int argc, char **argv){
 	if (has_help && argc >= 3 && strcmp(argv[2], "input") == 0){
 		printf(
 			"Usage:\n"
-			"  midimap [-m \"Input Device\" <mapfile>]+\n"
+			"  midimap [-d] [-m \"Input Device\" <mapfile>]+\n"
 			"\n"
 			"Input Devices:\n"
 			"  The program will always list out the available input devices.  For example:\n"
@@ -2092,6 +2150,8 @@ int main(int argc, char **argv){
 			"\n"
 			"  For more information on how the mapfile works, run:\n"
 			"    midimap --help mapfile\n"
+			"\n"
+			"Use -d to specify debug mode (verbose logging)\n"
 		);
 		return 0;
 	}
