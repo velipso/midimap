@@ -2285,7 +2285,7 @@ int main(int argc, char **argv){
 			"                                    RPNRoll             (3D/08)\n"
 			"\n"
 			"  Commands:\n"
-			"    Print \"Message\" \"Another\" ...                Print values to console\n"
+			"    Print \"Message\" \"Another\" ...                    Print values to console\n"
 			"      (`Print RawData` will print the raw bytes received in hexadecimal)\n"
 			"    SendCopy                                         Send a copy of the message\n"
 			"    SendNote         <Channel> <Note> <Value>        Send a note message, etc\n"
