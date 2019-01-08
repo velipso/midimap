@@ -1,4 +1,4 @@
-// (c) Copyright 2017, Sean Connelly (@voidqk), http://syntheti.cc
+// (c) Copyright 2017, Sean Connelly (@voidqk), http://sean.cm
 // MIT License
 // Project Home: https://github.com/voidqk/midimap
 
@@ -582,8 +582,13 @@ MIDITimeStamp tsnow;
 mach_timebase_info_data_t tsbase;
 
 void midisend(int size, const uint8_t *data){
-	//printf("send:"); for (int i = 0; i < size; i++) printf(" %02X", data[i]); printf("\n");
 	static uint8_t buffer[1000];
+	if (verbose){
+		printf("# Send:");
+		for (int i = 0; i < size; i++)
+			printf(" %02X", data[i]);
+		printf("\n");
+	}
 	MIDIPacketList *pkl = (MIDIPacketList *)buffer;
 	MIDIPacket *pk = MIDIPacketListInit(pkl);
 	MIDIPacketListAdd(pkl, sizeof(buffer), pk, mach_absolute_time(), size, data);
@@ -2102,8 +2107,8 @@ int main(int argc, char **argv){
 
 	// print version and copyright
 	printf(
-		"midimap 1.0\n"
-		"(c) Copyright 2017, Sean Connelly (@voidqk), http://syntheti.cc\n"
+		"midimap 1.0.1\n"
+		"(c) Copyright 2017, Sean Connelly (@voidqk), http://sean.cm\n"
 		"MIT License\n"
 		"Project Home: https://github.com/voidqk/midimap\n");
 

@@ -1,4 +1,4 @@
-// (c) Copyright 2017 Sean Connelly (@voidqk) http://syntheti.cc
+// (c) Copyright 2017 Sean Connelly (@voidqk) http://sean.cm
 // MIT License
 // Project Home: https://github.com/voidqk/midimap
 
@@ -25,7 +25,7 @@ function nameof(note){
 	var oct = Math.floor(note / 12) - 2;
 	return names[note % 12] + (oct < 0 ? 'N' + Math.abs(oct) : oct);
 }
-console.log('# (c) Copyright 2017 Sean Connelly (@voidqk) http://syntheti.cc');
+console.log('# (c) Copyright 2017 Sean Connelly (@voidqk) http://sean.cm');
 console.log('# MIT License');
 console.log('# Project Home: https://github.com/voidqk/midimap');
 for (var oct = 2; oct <= 4; oct++){
