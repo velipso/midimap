@@ -1180,7 +1180,7 @@ void midiread(const MIDIPacketList *pkl, midictx mctx, void *dummy){
 						if (msb)
 							mctx->cc[index] = p->data[mi + 2] << 7;
 						else
-							mctx->cc[index] = (mctx->cc[index] & 0x3F8) | p->data[mi + 2];
+							mctx->cc[index] = (mctx->cc[index] & 0x3F80) | p->data[mi + 2];
 						midimsg(mfs_size, mfs, MH_HIGHCC, (cmdctx){
 							.channel = (p->data[mi] & 0x0F) + 1,
 							.cclow = false,
@@ -1209,7 +1209,7 @@ void midiread(const MIDIPacketList *pkl, midictx mctx, void *dummy){
 					else if (p->data[mi + 1] == 0x26){
 						if (!PN_ISNULL(mctx->pn)){
 							pn_value = midictx_getpn(mctx, mctx->pn);
-							pn_value = (pn_value & 0x3F8) | p->data[mi + 2];
+							pn_value = (pn_value & 0x3F80) | p->data[mi + 2];
 							midictx_setpn(mctx, mctx->pn, pn_value);
 							goto pn_msg;
 						}
@@ -2107,7 +2107,7 @@ int main(int argc, char **argv){
 
 	// print version and copyright
 	printf(
-		"midimap 1.0.1\n"
+		"midimap 1.0.2\n"
 		"(c) Copyright 2017, Sean Connelly (@voidqk), http://sean.cm\n"
 		"MIT License\n"
 		"Project Home: https://github.com/voidqk/midimap\n");
