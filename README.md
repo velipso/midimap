@@ -130,20 +130,26 @@ Usage
 
 ```
 Usage:
-  midimap [-d] [-m "Input Device" <mapfile>]+
+  midimap [--help] [-d] [-f] [-a @alias value]+ [-m "Input Device" <mapfile>]+
 
   With no arguments specified, midimap will simply list the available sources
   for MIDI input.
 
-  For every `-m` argument, the program will listen for MIDI messages from the
-  input device, and apply the rules outlined in the <mapfile> for every message
-  received.
+  -d   Debug mode (verbose logging)
+  -f   Force low CC for all CC values; this is useful for devices that don't use
+       high CC at all, and treats all CC messages as low resolution
+  -a @alias value
+       Create an alias; aliases can be used for giving meaningful names to
+       numbers, controllers, or RPN parameters
+  -m "Input Device" <mapfile>
+       Listen for messages from "Input Device", and apply the rules outlined
+       in the <mapfile> for every message received
+  -h   Help
+  -v   Print version and exit
 
   The program will output the results to a single virtual MIDI device, named
   in the format of "midimap", "midimap 2", "midimap 3", etc, for each
   copy of the program running.
-
-  Use -d to specify debug mode (verbose logging).
 
 Input Devices:
   The program will always list out the available input devices.  For example:
@@ -158,24 +164,24 @@ Input Devices:
   Or the source index:
     midimap -m 5 <mapfile>
 
-Use -d to specify debug mode (verbose logging)
-
 Map Files:
-  Map files consist of a list of event handlers.  If the handler's criteria
-  matches the message, the instructions in the handler are executed, and no
-  further handlers are executed.
+  Map files consist of a list of event handlers and aliases.  If the handler's
+  criteria matches the message, the instructions in the handler are executed,
+  and no further handlers are executed.
+
+    Alias @TargetChannel 16
 
     OnNote 1 NoteGb3 Any
       # Change the Gb3 to a C4
       Print "Received:" Channel Note Value
-      SendNote 16 NoteC4 Value
+      SendNote @TargetChannel NoteC4 Value
     End
 
   For this example, if the input device sends a Gb3 message at any velocity in
   channel 1, the program will print the message, and send a C4 instead on
   channel 16.
 
-  The first line is what message to intercept, and the matching criteria
+  The OnNote line is what message to intercept, and the matching criteria
   for the message.  Criteria can be a literal value, `Any` which matches
   anything, or `Positive` for a number greater than zero.  Inside the handler,
   the instructions are executed in order using raw values ("Received:", 16,
@@ -248,6 +254,15 @@ Map Files:
     ControlSound8     (4D)          ControlEffect3     (5D)
     ControlSound9     (4E)          ControlEffect4     (5E)
     ControlSound10    (4F)          ControlEffect5     (5F)
+    ControlReserved1  (66)          ControlReserved2   (67)
+    ControlReserved3  (68)          ControlReserved4   (69)
+    ControlReserved5  (6A)          ControlReserved6   (6B)
+    ControlReserved7  (6C)          ControlReserved8   (6D)
+    ControlReserved9  (6E)          ControlReserved10  (6F)
+    ControlReserved11 (70)          ControlReserved12  (71)
+    ControlReserved13 (72)          ControlReserved14  (73)
+    ControlReserved15 (74)          ControlReserved16  (75)
+    ControlReserved17 (76)          ControlReserved18  (77)
 
   High-Resolution Controls (MIDI hex values in parenthesis for reference):
     ControlBank           (00/20)   ControlGeneral1    (10/30)
@@ -267,6 +282,20 @@ Map Files:
     ControlUndefined9     (0F/2F)   ControlUndefined20 (1E/3E)
                                     ControlUndefined21 (1F/3F)
 
+  If -f mode is used, then high-resolution controllers are interpreted as
+  two separate low-resolution controllers.  These are identified by taking
+  the high-resolution controller name and adding MSB or LSB to the end.
+  For example:
+    ControlBank (00/20) becomes:  ControlBankMSB (00)  ControlBankLSB (20)
+    ControlMod  (01/21) becomes:  ControlModMSB  (01)  ControlModLSB  (21)
+    ...etc
+  The -f mode also disables RPN/NRPN conrols, and instead interprets the
+  CC messages as low-resolution controllers with the names:
+    ControlDataMSB       (06)       ControlDataLSB       (26)
+    ControlPNIncrement   (60)       ControlPNDecrement   (61)
+    ControlNRPNSelectLSB (62)       ControlNRPNSelectMSB (63)
+    ControlRPNSelectLSB  (64)       ControlRPNSelectMSB  (65)
+
   Registered Parameters (MIDI hex values in parenthesis for reference):
     RPNBendRange     (00/00)        RPNAzimuth          (3D/00)
     RPNFineTuning    (00/01)        RPNElevation        (3D/01)
@@ -278,11 +307,28 @@ Map Files:
                                     RPNPanSpread        (3D/07)
                                     RPNRoll             (3D/08)
 
+  Aliases:
+    Any number, Note*, Control*, or RPN* keyword can be aliased to another
+    keyword starting with @.  For example, if your MIDI controller sends
+    ControlReserved1 when hitting the play button, you can alias it via:
+
+      Alias @PlayChannel  1
+      Alias @PlayButton   ControlReserved1
+
+    Then, it can be referenced anywhere else, like:
+
+      OnLowCC @PlayChannel @PlayButton Positive
+        # play was hit...
+      End
+
+    Aliases can also be defined from the command-line using -a:
+      midimap -a @PlayChannel 1 -a @PlayButton ControlReserved1 ...etc...
+
   Commands:
-    Print "Message" "Another" ...                Print values to console
+    Print "Message" "Another" ...                    Print values to console
       (`Print RawData` will print the raw bytes received in hexadecimal)
-    SendCopy                                     Send a copy of the message
-    SendNote         <Channel> <Note> <Value>    Send a note message, etc
+    SendCopy                                         Send a copy of the message
+    SendNote         <Channel> <Note> <Value>        Send a note message, etc
       (Use 0 for Value to send note off)
     SendBend         <Channel> <Value>
     SendNotePressure <Channel> <Note> <Value>
