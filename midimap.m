@@ -44,41 +44,131 @@
 	X(Effect2    , 0x5C) \
 	X(Effect3    , 0x5D) \
 	X(Effect4    , 0x5E) \
-	X(Effect5    , 0x5F)
+	X(Effect5    , 0x5F) \
+	X(Reserved1  , 0x66) \
+	X(Reserved2  , 0x67) \
+	X(Reserved3  , 0x68) \
+	X(Reserved4  , 0x69) \
+	X(Reserved5  , 0x6A) \
+	X(Reserved6  , 0x6B) \
+	X(Reserved7  , 0x6C) \
+	X(Reserved8  , 0x6D) \
+	X(Reserved9  , 0x6E) \
+	X(Reserved10 , 0x6F) \
+	X(Reserved11 , 0x70) \
+	X(Reserved12 , 0x71) \
+	X(Reserved13 , 0x72) \
+	X(Reserved14 , 0x73) \
+	X(Reserved15 , 0x74) \
+	X(Reserved16 , 0x75) \
+	X(Reserved17 , 0x76) \
+	X(Reserved18 , 0x77)
 
-#define EACH_HCC(X)                \
-	X(_Any           ,   -1,   -2) \
-	X(Bank           , 0x00, 0x20) \
-	X(Mod            , 0x01, 0x21) \
-	X(Breath         , 0x02, 0x22) \
-	X(Undefined6     , 0x03, 0x23) \
-	X(Foot           , 0x04, 0x24) \
-	X(PortamentoTime , 0x05, 0x25) \
-	X(ChannelVolume  , 0x07, 0x27) \
-	X(Balance        , 0x08, 0x28) \
-	X(Undefined7     , 0x09, 0x29) \
-	X(Pan            , 0x0A, 0x2A) \
-	X(Expression     , 0x0B, 0x2B) \
-	X(Effect6        , 0x0C, 0x2C) \
-	X(Effect7        , 0x0D, 0x2D) \
-	X(Undefined8     , 0x0E, 0x2E) \
-	X(Undefined9     , 0x0F, 0x2F) \
-	X(General1       , 0x10, 0x30) \
-	X(General2       , 0x11, 0x31) \
-	X(General3       , 0x12, 0x32) \
-	X(General4       , 0x13, 0x33) \
-	X(Undefined10    , 0x14, 0x34) \
-	X(Undefined11    , 0x15, 0x35) \
-	X(Undefined12    , 0x16, 0x36) \
-	X(Undefined13    , 0x17, 0x37) \
-	X(Undefined14    , 0x18, 0x38) \
-	X(Undefined15    , 0x19, 0x39) \
-	X(Undefined16    , 0x1A, 0x3A) \
-	X(Undefined17    , 0x1B, 0x3B) \
-	X(Undefined18    , 0x1C, 0x3C) \
-	X(Undefined19    , 0x1D, 0x3D) \
-	X(Undefined20    , 0x1E, 0x3E) \
-	X(Undefined21    , 0x1F, 0x3F)
+#define EACH_FORCELCC(X)       \
+	X(BankMSB          , 0x00) \
+	X(ModMSB           , 0x01) \
+	X(BreathMSB        , 0x02) \
+	X(Undefined6MSB    , 0x03) \
+	X(FootMSB          , 0x04) \
+	X(PortamentoTimeMSB, 0x05) \
+	X(DataMSB          , 0x06) \
+	X(ChannelVolumeMSB , 0x07) \
+	X(BalanceMSB       , 0x08) \
+	X(Undefined7MSB    , 0x09) \
+	X(PanMSB           , 0x0A) \
+	X(ExpressionMSB    , 0x0B) \
+	X(Effect6MSB       , 0x0C) \
+	X(Effect7MSB       , 0x0D) \
+	X(Undefined8MSB    , 0x0E) \
+	X(Undefined9MSB    , 0x0F) \
+	X(General1MSB      , 0x10) \
+	X(General2MSB      , 0x11) \
+	X(General3MSB      , 0x12) \
+	X(General4MSB      , 0x13) \
+	X(Undefined10MSB   , 0x14) \
+	X(Undefined11MSB   , 0x15) \
+	X(Undefined12MSB   , 0x16) \
+	X(Undefined13MSB   , 0x17) \
+	X(Undefined14MSB   , 0x18) \
+	X(Undefined15MSB   , 0x19) \
+	X(Undefined16MSB   , 0x1A) \
+	X(Undefined17MSB   , 0x1B) \
+	X(Undefined18MSB   , 0x1C) \
+	X(Undefined19MSB   , 0x1D) \
+	X(Undefined20MSB   , 0x1E) \
+	X(Undefined21MSB   , 0x1F) \
+	X(BankLSB          , 0x20) \
+	X(ModLSB           , 0x21) \
+	X(BreathLSB        , 0x22) \
+	X(Undefined6LSB    , 0x23) \
+	X(FootLSB          , 0x24) \
+	X(PortamentoTimeLSB, 0x25) \
+	X(DataLSB          , 0x26) \
+	X(ChannelVolumeLSB , 0x27) \
+	X(BalanceLSB       , 0x28) \
+	X(Undefined7LSB    , 0x29) \
+	X(PanLSB           , 0x2A) \
+	X(ExpressionLSB    , 0x2B) \
+	X(Effect6LSB       , 0x2C) \
+	X(Effect7LSB       , 0x2D) \
+	X(Undefined8LSB    , 0x2E) \
+	X(Undefined9LSB    , 0x2F) \
+	X(General1LSB      , 0x30) \
+	X(General2LSB      , 0x31) \
+	X(General3LSB      , 0x32) \
+	X(General4LSB      , 0x33) \
+	X(Undefined10LSB   , 0x34) \
+	X(Undefined11LSB   , 0x35) \
+	X(Undefined12LSB   , 0x36) \
+	X(Undefined13LSB   , 0x37) \
+	X(Undefined14LSB   , 0x38) \
+	X(Undefined15LSB   , 0x39) \
+	X(Undefined16LSB   , 0x3A) \
+	X(Undefined17LSB   , 0x3B) \
+	X(Undefined18LSB   , 0x3C) \
+	X(Undefined19LSB   , 0x3D) \
+	X(Undefined20LSB   , 0x3E) \
+	X(Undefined21LSB   , 0x3F) \
+	X(PNIncrement      , 0x60) \
+	X(PNDecrement      , 0x61) \
+	X(NRPNSelectLSB    , 0x62) \
+	X(NRPNSelectMSB    , 0x63) \
+	X(RPNSelectLSB     , 0x64) \
+	X(RPNSelectMSB     , 0x65)
+
+#define EACH_HCC(X)               \
+	X(_Any          ,   -1,   -2) \
+	X(Bank          , 0x00, 0x20) \
+	X(Mod           , 0x01, 0x21) \
+	X(Breath        , 0x02, 0x22) \
+	X(Undefined6    , 0x03, 0x23) \
+	X(Foot          , 0x04, 0x24) \
+	X(PortamentoTime, 0x05, 0x25) \
+	X(ChannelVolume , 0x07, 0x27) \
+	X(Balance       , 0x08, 0x28) \
+	X(Undefined7    , 0x09, 0x29) \
+	X(Pan           , 0x0A, 0x2A) \
+	X(Expression    , 0x0B, 0x2B) \
+	X(Effect6       , 0x0C, 0x2C) \
+	X(Effect7       , 0x0D, 0x2D) \
+	X(Undefined8    , 0x0E, 0x2E) \
+	X(Undefined9    , 0x0F, 0x2F) \
+	X(General1      , 0x10, 0x30) \
+	X(General2      , 0x11, 0x31) \
+	X(General3      , 0x12, 0x32) \
+	X(General4      , 0x13, 0x33) \
+	X(Undefined10   , 0x14, 0x34) \
+	X(Undefined11   , 0x15, 0x35) \
+	X(Undefined12   , 0x16, 0x36) \
+	X(Undefined13   , 0x17, 0x37) \
+	X(Undefined14   , 0x18, 0x38) \
+	X(Undefined15   , 0x19, 0x39) \
+	X(Undefined16   , 0x1A, 0x3A) \
+	X(Undefined17   , 0x1B, 0x3B) \
+	X(Undefined18   , 0x1C, 0x3C) \
+	X(Undefined19   , 0x1D, 0x3D) \
+	X(Undefined20   , 0x1E, 0x3E) \
+	X(Undefined21   , 0x1F, 0x3F)
 
 #define EACH_RPN(X)                 \
 	X(_Any            ,   -1,   -2) \
@@ -233,13 +323,17 @@
 typedef enum {
 	#define X(name, v)  LCC_ ## name,
 	EACH_LCC(X)
+	EACH_FORCELCC(X)
 	#undef X
 } lowcc_type;
+
+bool forcelowcc = false;
 
 const char *lowcc_name(lowcc_type cc){
 	switch (cc){
 		#define X(name, v)  case LCC_ ## name: return v == -1 ? "Any" : "Control" # name;
 		EACH_LCC(X)
+		EACH_FORCELCC(X)
 		#undef X
 	}
 	return "<Unknown>";
@@ -253,6 +347,9 @@ bool lowcc_fromname(const char *str, lowcc_type *out){
 			return true;                                       \
 		}
 	EACH_LCC(X)
+	if (forcelowcc){
+		EACH_FORCELCC(X)
+	}
 	#undef X
 	return false;
 }
@@ -261,16 +358,22 @@ void lowcc_midi(lowcc_type cc, int *midi){
 	switch (cc){
 		#define X(name, v)  case LCC_ ## name: *midi = v; return;
 		EACH_LCC(X)
+		EACH_FORCELCC(X)
 		#undef X
 	}
 }
 
 bool lowcc_frommidi(int midi, lowcc_type *cc){
+	#define X(name, v)  case v: *cc = LCC_ ## name; return true;
 	switch (midi){
-		#define X(name, v)  case v: *cc = LCC_ ## name; return true;
 		EACH_LCC(X)
-		#undef X
 	}
+	if (forcelowcc){
+		switch (midi){
+			EACH_FORCELCC(X)
+		}
+	}
+	#undef X
 	return false;
 }
 
@@ -414,6 +517,16 @@ typedef struct {
 		rpn_type rpn;
 	} val;
 } maparg_st, *maparg;
+
+typedef struct {
+	char *name;
+	maparg_st arg;
+} alias_st;
+
+typedef struct {
+	int size;
+	alias_st *aliases;
+} list_alias_st, *list_alias;
 
 typedef enum {
 	MC_PRINT,
@@ -1003,12 +1116,8 @@ void midimsg(int size, mapfile *mfs, maphandler_type type, cmdctx ctx, int dsize
 		}
 	}
 	// nothing got it, so see if OnElse should get it
-	if (type != MH_ELSE){
-		bool old_verbose = verbose;
-		verbose = false;
+	if (type != MH_ELSE)
 		midimsg(size, mfs, MH_ELSE, (cmdctx){0}, dsize, data);
-		verbose = old_verbose;
-	}
 }
 
 // number of parameters to cache
@@ -1090,6 +1199,12 @@ void midiread(const MIDIPacketList *pkl, midictx mctx, void *dummy){
 					ielse = 0;                                                   \
 				}                                                                \
 			} while (false)
+		if (verbose){
+			printf("# Receive:");
+			for (int i = 0; i < p->length; i++)
+				printf(" %02X", p->data[i]);
+			printf("\n");
+		}
 		while (mi < p->length){
 			switch (p->data[mi] & 0xF0){
 				case 0x80: { // Note Off: Note/Velocity
@@ -1330,13 +1445,156 @@ bool parseint(const char *str, int *out){
 	return true;
 }
 
-int anyint(const char *str){
+
+list_alias list_alias_new(){
+	list_alias al = m_alloc(sizeof(list_alias_st));
+	al->size = 0;
+	al->aliases = NULL;
+	return al;
+}
+
+void list_alias_add(list_alias al, const char *name, maparg_st arg){
+	al->size++;
+	al->aliases = m_realloc(al->aliases, al->size * sizeof(alias_st));
+	al->aliases[al->size - 1].name = format("%s", name);
+	al->aliases[al->size - 1].arg = arg;
+}
+
+bool list_alias_parse(list_alias al, const char *name, const char *value){
+	if (name[0] != '@'){
+		fprintf(stderr, "Invalid alias name \"%s\" - aliases must start with \"@\"\n", name);
+		return false;
+	}
+	maparg_st arg;
+	int num;
+	int note;
+	lowcc_type lcc;
+	highcc_type hcc;
+	rpn_type rpn;
+	if (parseint(value, &num)){
+		arg.type = MA_VAL_NUM;
+		arg.val.num = num;
+	}
+	else if ((note = note_fromname(value)) != -2){
+		arg.type = MA_VAL_NOTE;
+		arg.val.note = note;
+	}
+	else if (lowcc_fromname(value, &lcc)){
+		arg.type = MA_VAL_LOWCC;
+		arg.val.lowcc = lcc;
+	}
+	else if (highcc_fromname(value, &hcc)){
+		arg.type = MA_VAL_HIGHCC;
+		arg.val.highcc = hcc;
+	}
+	else if (rpn_fromname(value, &rpn)){
+		arg.type = MA_VAL_RPN;
+		arg.val.rpn = rpn;
+	}
+	else{
+		fprintf(stderr, "Bad alias value \"%s\" - must be either number, controller, or RPN\n",
+			value);
+		return false;
+	}
+	for (int i = 0; i < al->size; i++){
+		if (strcmp(name, al->aliases[i].name) == 0){
+			fprintf(stderr, "Alias \"%s\" already exists\n", name);
+			return false;
+		}
+	}
+	list_alias_add(al, name, arg);
+	return true;
+}
+
+list_alias list_alias_copy(list_alias al){
+	list_alias al2 = list_alias_new();
+	for (int i = 0; i < al->size; i++)
+		list_alias_add(al2, al->aliases[i].name, al->aliases[i].arg);
+	return al2;
+}
+
+bool list_alias_find(list_alias al, const char *name, maparg_st *arg_out){
+	for (int i = 0; i < al->size; i++){
+		if (strcmp(al->aliases[i].name, name) == 0){
+			*arg_out = al->aliases[i].arg;
+			return true;
+		}
+	}
+	return false;
+}
+
+void list_alias_free(list_alias al){
+	for (int i = 0; i < al->size; i++)
+		m_free(al->aliases[i].name);
+	m_free(al->aliases);
+	m_free(al);
+}
+
+bool parseint_al(list_alias al, const char *str, int *out){
+	if (str[0] == '@'){
+		maparg_st arg;
+		if (list_alias_find(al, str, &arg) && arg.type == MA_VAL_NUM){
+			*out = arg.val.num;
+			return true;
+		}
+		return false;
+	}
+	return parseint(str, out);
+}
+
+int note_fromname_al(list_alias al, const char *str){
+	if (str[0] == '@'){
+		maparg_st arg;
+		if (list_alias_find(al, str, &arg) && arg.type == MA_VAL_NOTE)
+			return arg.val.note;
+		return -2;
+	}
+	return note_fromname(str);
+}
+
+bool lowcc_fromname_al(list_alias al, const char *str, lowcc_type *out){
+	if (str[0] == '@'){
+		maparg_st arg;
+		if (list_alias_find(al, str, &arg) && arg.type == MA_VAL_LOWCC){
+			*out = arg.val.lowcc;
+			return true;
+		}
+		return false;
+	}
+	return lowcc_fromname(str, out);
+}
+
+bool highcc_fromname_al(list_alias al, const char *str, highcc_type *out){
+	if (str[0] == '@'){
+		maparg_st arg;
+		if (list_alias_find(al, str, &arg) && arg.type == MA_VAL_HIGHCC){
+			*out = arg.val.highcc;
+			return true;
+		}
+		return false;
+	}
+	return highcc_fromname(str, out);
+}
+
+bool rpn_fromname_al(list_alias al, const char *str, rpn_type *out){
+	if (str[0] == '@'){
+		maparg_st arg;
+		if (list_alias_find(al, str, &arg) && arg.type == MA_VAL_RPN){
+			*out = arg.val.rpn;
+			return true;
+		}
+		return false;
+	}
+	return rpn_fromname(str, out);
+}
+
+int anyint(list_alias al, const char *str){
 	if (strcmp(str, "Any") == 0)
 		return -1;
 	if (strcmp(str, "Positive") == 0)
 		return -2;
 	int ret;
-	if (parseint(str, &ret))
+	if (parseint_al(al, str, &ret))
 		return ret;
 	return -3;
 }
@@ -1396,10 +1654,10 @@ int split(char *line, char **comp){
 	return next;
 }
 
-bool maparg_parse(const char *str, int allow_mask, maparg_st *ma){
+bool maparg_parse(list_alias al, const char *str, int allow_mask, maparg_st *ma){
 	if (allow_mask & MA_VAL_NUM){
 		int ret;
-		if (parseint(str, &ret)){
+		if (parseint_al(al, str, &ret)){
 			ma->type = MA_VAL_NUM;
 			ma->val.num = ret;
 			return true;
@@ -1416,7 +1674,7 @@ bool maparg_parse(const char *str, int allow_mask, maparg_st *ma){
 		}
 	}
 	if (allow_mask & MA_VAL_NOTE){
-		int note = note_fromname(str);
+		int note = note_fromname_al(al, str);
 		if (note >= 0){
 			ma->type = MA_VAL_NOTE;
 			ma->val.note = note;
@@ -1425,7 +1683,7 @@ bool maparg_parse(const char *str, int allow_mask, maparg_st *ma){
 	}
 	if (allow_mask & MA_VAL_LOWCC){
 		lowcc_type lowcc;
-		if (lowcc_fromname(str, &lowcc) && lowcc != LCC__Any){
+		if (lowcc_fromname_al(al, str, &lowcc) && lowcc != LCC__Any){
 			ma->type = MA_VAL_LOWCC;
 			ma->val.lowcc = lowcc;
 			return true;
@@ -1433,7 +1691,7 @@ bool maparg_parse(const char *str, int allow_mask, maparg_st *ma){
 	}
 	if (allow_mask & MA_VAL_HIGHCC){
 		highcc_type highcc;
-		if (highcc_fromname(str, &highcc) && highcc != HCC__Any){
+		if (highcc_fromname_al(al, str, &highcc) && highcc != HCC__Any){
 			ma->type = MA_VAL_HIGHCC;
 			ma->val.highcc = highcc;
 			return true;
@@ -1441,7 +1699,7 @@ bool maparg_parse(const char *str, int allow_mask, maparg_st *ma){
 	}
 	if (allow_mask & MA_VAL_RPN){
 		rpn_type rpn;
-		if (rpn_fromname(str, &rpn) && rpn != RPN__Any){
+		if (rpn_fromname_al(al, str, &rpn) && rpn != RPN__Any){
 			ma->type = MA_VAL_RPN;
 			ma->val.rpn = rpn;
 			return true;
@@ -1465,12 +1723,33 @@ bool maparg_parse(const char *str, int allow_mask, maparg_st *ma){
 	return false;
 }
 
-void maphandler_parse(char *const *comp, int cs, bool *valid, bool *found, maphandler_st *mh){
+void printerror(const char *handler, const char *param, const char *comp){
+	if (comp[0] == '@'){
+		fprintf(stderr, "Undefined alias used in %s for %s handler: %s\n",
+			param, handler, comp);
+	}
+	else
+		fprintf(stderr, "Invalid %s for %s handler: %s\n", param, handler, comp);
+}
+
+void maphandler_parse(char *const *comp, int cs, list_alias al, bool *valid, bool *found,
+	maphandler_st *mh){
 	*valid = false;
 	*found = true;
 	if (cs <= 0){
 		*valid = true;
 		*found = false;
+		return;
+	}
+
+	if (strcmp(comp[0], "Alias") == 0){
+		*found = false;
+		if (cs != 3){
+			fprintf(stderr, "Invalid alias - expecting 2 arguments\n");
+			return;
+		}
+		if (list_alias_parse(al, comp[1], comp[2]))
+			*valid = true;
 		return;
 	}
 
@@ -1500,19 +1779,19 @@ void maphandler_parse(char *const *comp, int cs, bool *valid, bool *found, mapha
 				fprintf(stderr, "Invalid format for OnNote handler\n");
 				return;
 			}
-			int channel = anyint(comp[1]);
+			int channel = anyint(al, comp[1]);
 			if (channel < -2){
-				fprintf(stderr, "Invalid channel for OnNote handler: %s\n", comp[1]);
+				printerror("OnNote", "channel", comp[1]);
 				return;
 			}
-			int note = note_fromname(comp[2]);
+			int note = note_fromname_al(al, comp[2]);
 			if (note < -1){
-				fprintf(stderr, "Invalid note for OnNote handler: %s\n", comp[2]);
+				printerror("OnNote", "note", comp[2]);
 				return;
 			}
-			int velocity = anyint(comp[3]);
+			int velocity = anyint(al, comp[3]);
 			if (velocity < -2){
-				fprintf(stderr, "Invalid velocity for OnNote handler: %s\n", comp[3]);
+				printerror("OnNote", "velocity", comp[3]);
 				return;
 			}
 			*valid = true;
@@ -1526,14 +1805,14 @@ void maphandler_parse(char *const *comp, int cs, bool *valid, bool *found, mapha
 				fprintf(stderr, "Invalid format for OnBend handler\n");
 				return;
 			}
-			int channel = anyint(comp[1]);
+			int channel = anyint(al, comp[1]);
 			if (channel < -2){
-				fprintf(stderr, "Invalid channel for OnBend handler: %s\n", comp[1]);
+				printerror("OnBend", "channel", comp[1]);
 				return;
 			}
-			int bend = anyint(comp[2]);
+			int bend = anyint(al, comp[2]);
 			if (bend < -2){
-				fprintf(stderr, "Invalid value for OnBend handler: %s\n", comp[2]);
+				printerror("OnBend", "value", comp[2]);
 				return;
 			}
 			*valid = true;
@@ -1546,19 +1825,19 @@ void maphandler_parse(char *const *comp, int cs, bool *valid, bool *found, mapha
 				fprintf(stderr, "Invalid format for OnNotePressure handler\n");
 				return;
 			}
-			int channel = anyint(comp[1]);
+			int channel = anyint(al, comp[1]);
 			if (channel < -2){
-				fprintf(stderr, "Invalid channel for OnNotePressure handler: %s\n", comp[1]);
+				printerror("OnNotePressure", "channel", comp[1]);
 				return;
 			}
-			int note = note_fromname(comp[2]);
+			int note = note_fromname_al(al, comp[2]);
 			if (note < -1){
-				fprintf(stderr, "Invalid note for OnNotePressure handler: %s\n", comp[2]);
+				printerror("OnNotePressure", "note", comp[2]);
 				return;
 			}
-			int pressure = anyint(comp[3]);
+			int pressure = anyint(al, comp[3]);
 			if (pressure < -2){
-				fprintf(stderr, "Invalid pressure for OnNotePressure handler: %s\n", comp[3]);
+				printerror("OnNotePressure", "value", comp[3]);
 				return;
 			}
 			*valid = true;
@@ -1572,14 +1851,14 @@ void maphandler_parse(char *const *comp, int cs, bool *valid, bool *found, mapha
 				fprintf(stderr, "Invalid format for OnChanPressure handler\n");
 				return;
 			}
-			int channel = anyint(comp[1]);
+			int channel = anyint(al, comp[1]);
 			if (channel < -2){
-				fprintf(stderr, "Invalid channel for OnChanPressure handler: %s\n", comp[1]);
+				printerror("OnChanPressure", "channel", comp[1]);
 				return;
 			}
-			int pressure = anyint(comp[2]);
+			int pressure = anyint(al, comp[2]);
 			if (pressure < -2){
-				fprintf(stderr, "Invalid value for OnChanPressure handler: %s\n", comp[2]);
+				printerror("OnChanPressure", "value", comp[2]);
 				return;
 			}
 			*valid = true;
@@ -1592,14 +1871,14 @@ void maphandler_parse(char *const *comp, int cs, bool *valid, bool *found, mapha
 				fprintf(stderr, "Invalid format for OnPatch handler\n");
 				return;
 			}
-			int channel = anyint(comp[1]);
+			int channel = anyint(al, comp[1]);
 			if (channel < -2){
-				fprintf(stderr, "Invalid channel for OnPatch handler: %s\n", comp[1]);
+				printerror("OnPatch", "channel", comp[1]);
 				return;
 			}
-			int patch = anyint(comp[2]);
+			int patch = anyint(al, comp[2]);
 			if (patch < -2){
-				fprintf(stderr, "Invalid value for OnPatch handler: %s\n", comp[2]);
+				printerror("OnPatch", "value", comp[2]);
 				return;
 			}
 			*valid = true;
@@ -1612,19 +1891,19 @@ void maphandler_parse(char *const *comp, int cs, bool *valid, bool *found, mapha
 				fprintf(stderr, "Invalid format for OnLowCC handler\n");
 				return;
 			}
-			int channel = anyint(comp[1]);
+			int channel = anyint(al, comp[1]);
 			if (channel < -2){
-				fprintf(stderr, "Invalid channel for OnLowCC handler: %s\n", comp[1]);
+				printerror("OnLowCC", "channel", comp[1]);
 				return;
 			}
 			lowcc_type control;
-			if (!lowcc_fromname(comp[2], &control)){
-				fprintf(stderr, "Invalid control for OnLowCC handler: %s\n", comp[2]);
+			if (!lowcc_fromname_al(al, comp[2], &control)){
+				printerror("OnLowCC", "control", comp[2]);
 				return;
 			}
-			int value = anyint(comp[3]);
+			int value = anyint(al, comp[3]);
 			if (value < -2){
-				fprintf(stderr, "Invalid value for OnLowCC handler: %s\n", comp[3]);
+				printerror("OnLowCC", "value", comp[3]);
 				return;
 			}
 			*valid = true;
@@ -1638,19 +1917,19 @@ void maphandler_parse(char *const *comp, int cs, bool *valid, bool *found, mapha
 				fprintf(stderr, "Invalid format for OnHighCC handler\n");
 				return;
 			}
-			int channel = anyint(comp[1]);
+			int channel = anyint(al, comp[1]);
 			if (channel < -2){
-				fprintf(stderr, "Invalid channel for OnHighCC handler: %s\n", comp[1]);
+				printerror("OnHighCC", "channel", comp[1]);
 				return;
 			}
 			highcc_type control;
-			if (!highcc_fromname(comp[2], &control)){
-				fprintf(stderr, "Invalid control for OnHighCC handler: %s\n", comp[2]);
+			if (!highcc_fromname_al(al, comp[2], &control)){
+				printerror("OnHighCC", "control", comp[2]);
 				return;
 			}
-			int value = anyint(comp[3]);
+			int value = anyint(al, comp[3]);
 			if (value < -2){
-				fprintf(stderr, "Invalid value for OnHighCC handler: %s\n", comp[3]);
+				printerror("OnHighCC", "value", comp[3]);
 				return;
 			}
 			*valid = true;
@@ -1664,19 +1943,19 @@ void maphandler_parse(char *const *comp, int cs, bool *valid, bool *found, mapha
 				fprintf(stderr, "Invalid format for OnRPN handler\n");
 				return;
 			}
-			int channel = anyint(comp[1]);
+			int channel = anyint(al, comp[1]);
 			if (channel < -2){
-				fprintf(stderr, "Invalid channel for OnRPN handler: %s\n", comp[1]);
+				printerror("OnRPN", "channel", comp[1]);
 				return;
 			}
 			rpn_type rpn;
-			if (!rpn_fromname(comp[2], &rpn)){
-				fprintf(stderr, "Invalid RPN for OnRPN handler: %s\n", comp[2]);
+			if (!rpn_fromname_al(al, comp[2], &rpn)){
+				printerror("OnRPN", "RPN", comp[2]);
 				return;
 			}
-			int value = anyint(comp[3]);
+			int value = anyint(al, comp[3]);
 			if (value < -2){
-				fprintf(stderr, "Invalid value for OnRPN handler: %s\n", comp[3]);
+				printerror("OnRPN", "value", comp[3]);
 				return;
 			}
 			*valid = true;
@@ -1690,19 +1969,19 @@ void maphandler_parse(char *const *comp, int cs, bool *valid, bool *found, mapha
 				fprintf(stderr, "Invalid format for OnNRPN handler\n");
 				return;
 			}
-			int channel = anyint(comp[1]);
+			int channel = anyint(al, comp[1]);
 			if (channel < -2){
-				fprintf(stderr, "Invalid channel for OnNRPN handler: %s\n", comp[1]);
+				printerror("OnNRPN", "channel", comp[1]);
 				return;
 			}
-			int nrpn = anyint(comp[2]);
+			int nrpn = anyint(al, comp[2]);
 			if (nrpn < -2){
-				fprintf(stderr, "Invalid NRPN for OnNRPN handler: %s\n", comp[2]);
+				printerror("OnNRPN", "NRPN", comp[2]);
 				return;
 			}
-			int value = anyint(comp[3]);
+			int value = anyint(al, comp[3]);
 			if (value < -2){
-				fprintf(stderr, "Invalid value for OnNRPN handler: %s\n", comp[3]);
+				printerror("OnNRPN", "value", comp[3]);
 				return;
 			}
 			*valid = true;
@@ -1716,9 +1995,9 @@ void maphandler_parse(char *const *comp, int cs, bool *valid, bool *found, mapha
 				fprintf(stderr, "Invalid format for OnAllSoundOff handler\n");
 				return;
 			}
-			int channel = anyint(comp[1]);
+			int channel = anyint(al, comp[1]);
 			if (channel < -2){
-				fprintf(stderr, "Invalid channel for OnAllSoundOff handler: %s\n", comp[1]);
+				printerror("OnAllSoundOff", "channel", comp[1]);
 				return;
 			}
 			*valid = true;
@@ -1730,9 +2009,9 @@ void maphandler_parse(char *const *comp, int cs, bool *valid, bool *found, mapha
 				fprintf(stderr, "Invalid format for OnAllNotesOff handler\n");
 				return;
 			}
-			int channel = anyint(comp[1]);
+			int channel = anyint(al, comp[1]);
 			if (channel < -2){
-				fprintf(stderr, "Invalid channel for OnAllNotesOff handler: %s\n", comp[1]);
+				printerror("OnAllNotesOff", "channel", comp[1]);
 				return;
 			}
 			*valid = true;
@@ -1744,9 +2023,9 @@ void maphandler_parse(char *const *comp, int cs, bool *valid, bool *found, mapha
 				fprintf(stderr, "Invalid format for OnReset handler\n");
 				return;
 			}
-			int channel = anyint(comp[1]);
+			int channel = anyint(al, comp[1]);
 			if (channel < -2){
-				fprintf(stderr, "Invalid channel for OnReset handler: %s\n", comp[1]);
+				printerror("OnReset", "channel", comp[1]);
 				return;
 			}
 			*valid = true;
@@ -1764,8 +2043,8 @@ void maphandler_parse(char *const *comp, int cs, bool *valid, bool *found, mapha
 	}
 }
 
-void mapcmd_parse(maphandler_type mht, char *const *comp, int cs, bool *valid, bool *isend,
-	bool *found, mapcmd_st *mc){
+void mapcmd_parse(list_alias al, maphandler_type mht, char *const *comp, int cs, bool *valid,
+	bool *isend, bool *found, mapcmd_st *mc){
 	*valid = *isend = false;
 	*found = true;
 	if (cs <= 0){
@@ -1823,7 +2102,7 @@ void mapcmd_parse(maphandler_type mht, char *const *comp, int cs, bool *valid, b
 
 	#define ADD_ARG(str, allow_mask)  do{                                        \
 			maparg_st ma;                                                        \
-			if (!maparg_parse(str, (allow_mask) & mht_mask, &ma)){               \
+			if (!maparg_parse(al, str, (allow_mask) & mht_mask, &ma)){           \
 				fprintf(stderr, "Invalid argument for %s: %s\n", comp[0], str);  \
 				goto fail;                                                       \
 			}                                                                    \
@@ -2001,9 +2280,9 @@ void mapcmd_parse(maphandler_type mht, char *const *comp, int cs, bool *valid, b
 	fail:
 	for (int i = 0; i < args_size; i++){
 		if (args[i].type == MA_VAL_STR)
-			free(args[i].val.str);
+			m_free(args[i].val.str);
 	}
-	free(args);
+	m_free(args);
 	#undef ADD_ARG
 	#undef CHECK_RANGE
 	#undef DONE
@@ -2015,16 +2294,16 @@ void mapfile_free(mapfile mf){
 			for (int k = 0; k < mf->handlers[i].cmds[j].size; k++){
 				maparg arg = &mf->handlers[i].cmds[j].args[k];
 				if (arg->type == MA_VAL_STR)
-					free(arg->val.str);
+					m_free(arg->val.str);
 			}
-			free(mf->handlers[i].cmds[j].args);
+			m_free(mf->handlers[i].cmds[j].args);
 		}
-		free(mf->handlers[i].cmds);
+		m_free(mf->handlers[i].cmds);
 	}
-	free(mf);
+	m_free(mf);
 }
 
-mapfile mapfile_parse(const char *file){
+mapfile mapfile_parse(list_alias alcmd, const char *file){
 	FILE *fp = fopen(file, "r");
 	if (fp == NULL){
 		fprintf(stderr, "Failed to open map file: %s\n", file);
@@ -2032,6 +2311,7 @@ mapfile mapfile_parse(const char *file){
 	}
 
 	mapfile mf = m_alloc(sizeof(mapfile_st));
+	list_alias al = list_alias_copy(alcmd);
 	mf->size = 0;
 	mf->handlers = NULL;
 	maphandler mh;
@@ -2048,7 +2328,7 @@ mapfile mapfile_parse(const char *file){
 			case ST_START: {
 				bool valid, found;
 				maphandler_st mhs;
-				maphandler_parse(comp, split(trim(line), comp), &valid, &found, &mhs);
+				maphandler_parse(comp, split(trim(line), comp), al, &valid, &found, &mhs);
 				if (!valid)
 					goto invalid;
 				if (found){
@@ -2064,7 +2344,8 @@ mapfile mapfile_parse(const char *file){
 			case ST_CMDS: {
 				bool valid, isend, found;
 				mapcmd_st mc;
-				mapcmd_parse(mh->type, comp, split(trim(line), comp), &valid, &isend, &found, &mc);
+				mapcmd_parse(al, mh->type, comp, split(trim(line), comp), &valid, &isend, &found,
+					&mc);
 				if (!valid)
 					goto invalid;
 				if (isend)
@@ -2079,13 +2360,23 @@ mapfile mapfile_parse(const char *file){
 	}
 	if (state == ST_START){
 		fclose(fp);
+		list_alias_free(al);
 		return mf;
 	}
 	fprintf(stderr, "Missing `End` of handler\n");
 	invalid:
 	mapfile_free(mf);
 	fclose(fp);
+	list_alias_free(al);
 	return NULL;
+}
+
+void printusage(){
+	printf(
+		"Usage:\n"
+		"  midimap [--help] [-d] [-f] [-a @alias value]+ [-m \"Input Device\" <mapfile>]+\n"
+		"\n"
+	);
 }
 
 int main(int argc, char **argv){
@@ -2094,6 +2385,7 @@ int main(int argc, char **argv){
 	bool init_out = false;
 	#define MAX_SOURCES 100
 	int srcs_size = 0;
+	list_alias alcmd = list_alias_new();
 	struct {
 		MIDIEndpointRef ep;
 		const char *name;
@@ -2107,39 +2399,99 @@ int main(int argc, char **argv){
 
 	// print version and copyright
 	printf(
-		"midimap 1.0.2\n"
+		"midimap 1.1.0\n"
 		"(c) Copyright 2017, Sean Connelly (@voidqk), http://sean.cm\n"
 		"MIT License\n"
 		"Project Home: https://github.com/voidqk/midimap\n");
 
-	// look for version
-	if (argc == 2 && (
-		strcmp(argv[1], "version") == 0 ||
-		strcmp(argv[1], "-version") == 0 ||
-		strcmp(argv[1], "--version") == 0 ||
-		strcmp(argv[1], "-v") == 0))
+	// parse arguments
+	bool printversion = false;
+	int printhelp = 0; // 0 = no, 1 = basic help, 2 = input, 3 = mapfile
+	for (int i = 1; i < argc; i++){
+		if (strcmp(argv[i], "-v") == 0 || strcmp(argv[i], "--version") == 0)
+			printversion = true;
+		else if (strcmp(argv[i], "-h") == 0 || strcmp(argv[i], "--help") == 0){
+			printhelp = 1;
+			if (i < argc - 1) {
+				if (strcmp(argv[i + 1], "input") == 0){
+					printhelp = 2;
+					i++;
+				}
+				else if (strcmp(argv[i + 1], "mapfile") == 0){
+					printhelp = 3;
+					i++;
+				}
+			}
+		}
+		else if (strcmp(argv[i], "-d") == 0 || strcmp(argv[i], "--debug") == 0)
+			verbose = true;
+		else if (strcmp(argv[i], "-f") == 0)
+			forcelowcc = true;
+		else if (strcmp(argv[i], "-a") == 0){
+			if (i >= argc - 2){
+				fprintf(stderr, "Expecting two arguments after -a\n");
+				result = 1;
+				goto cleanup;
+			}
+			if (!list_alias_parse(alcmd, argv[i + 1], argv[i + 2])){
+				result = 1;
+				goto cleanup;
+			}
+			i += 2;
+		}
+		else if (strcmp(argv[i], "-m") == 0){
+			if (i >= argc - 2){
+				fprintf(stderr, "Expecting two arguments after -m\n");
+				result = 1;
+				goto cleanup;
+			}
+			i += 2;
+		}
+		else{
+			fprintf(stderr,
+				"Invalid command line argument: %s\nFor help, type:\n  midimap --help\n", argv[i]);
+			result = 1;
+			goto cleanup;
+		}
+	}
+	if (printversion)
 		return 0; // already printed, so just exit immediately
+
 	printf("\n");
 
-	// look for -d (debug mode) before everything else
-	if (argc >= 2 && strcmp(argv[1], "-d") == 0){
-		verbose = true;
-		argc--;
-		argv = &argv[1];
-	}
-
-	bool has_help = argc >= 2 && (
-		strcmp(argv[1], "help") == 0 ||
-		strcmp(argv[1], "-help") == 0 ||
-		strcmp(argv[1], "--help") == 0 ||
-		strcmp(argv[1], "-h") == 0);
-
-	// input help
-	if (has_help && argc >= 3 && strcmp(argv[2], "input") == 0){
+	if (printhelp == 1){
+		printusage();
 		printf(
-			"Usage:\n"
-			"  midimap [-d] [-m \"Input Device\" <mapfile>]+\n"
+			"  With no arguments specified, midimap will simply list the available sources\n"
+			"  for MIDI input.\n"
 			"\n"
+			"  -d   Debug mode (verbose logging)\n"
+			"  -f   Force low CC for all CC values; this is useful for devices that don't use\n"
+			"       high CC at all, and treats all CC messages as low resolution\n"
+			"  -a @alias value\n"
+			"       Create an alias; aliases can be used for giving meaningful names to\n"
+			"       numbers, controllers, or RPN parameters\n"
+			"  -m \"Input Device\" <mapfile>\n"
+			"       Listen for messages from \"Input Device\", and apply the rules outlined\n"
+			"       in the <mapfile> for every message received\n"
+			"  -h   Help\n"
+			"  -v   Print version and exit\n"
+			"\n"
+			"  The program will output the results to a single virtual MIDI device, named\n"
+			"  in the format of \"midimap\", \"midimap 2\", \"midimap 3\", etc, for each\n"
+			"  copy of the program running.\n"
+			"\n"
+			"  For more information on specifying input devices, run:\n"
+			"    midimap --help input\n"
+			"\n"
+			"  For more information on how the mapfile and aliases work, run:\n"
+			"    midimap --help mapfile\n"
+		);
+		return 0;
+	}
+	else if (printhelp == 2){
+		printusage();
+		printf(
 			"Input Devices:\n"
 			"  The program will always list out the available input devices.  For example:\n"
 			"    Source 1: \"Keyboard A\"\n"
@@ -2159,29 +2511,27 @@ int main(int argc, char **argv){
 		);
 		return 0;
 	}
-
-	// mapfile help
-	if (has_help && argc >= 3 && strcmp(argv[2], "mapfile") == 0){
+	else if (printhelp == 3){
+		printusage();
 		printf(
-			"Usage:\n"
-			"  midimap [-d] [-m \"Input Device\" <mapfile>]+\n"
-			"\n"
 			"Map Files:\n"
-			"  Map files consist of a list of event handlers.  If the handler's criteria\n"
-			"  matches the message, the instructions in the handler are executed, and no\n"
-			"  further handlers are executed.\n"
+			"  Map files consist of a list of event handlers and aliases.  If the handler's\n"
+			"  criteria matches the message, the instructions in the handler are executed,\n"
+			"  and no further handlers are executed.\n"
+			"\n"
+			"    Alias @TargetChannel 16\n"
 			"\n"
 			"    OnNote 1 NoteGb3 Any\n"
 			"      # Change the Gb3 to a C4\n"
 			"      Print \"Received:\" Channel Note Value\n"
-			"      SendNote 16 NoteC4 Value\n"
+			"      SendNote @TargetChannel NoteC4 Value\n"
 			"    End\n"
 			"\n"
 			"  For this example, if the input device sends a Gb3 message at any velocity in\n"
 			"  channel 1, the program will print the message, and send a C4 instead on\n"
 			"  channel 16.\n"
 			"\n"
-			"  The first line is what message to intercept, and the matching criteria\n"
+			"  The OnNote line is what message to intercept, and the matching criteria\n"
 			"  for the message.  Criteria can be a literal value, `Any` which matches\n"
 			"  anything, or `Positive` for a number greater than zero.  Inside the handler,\n"
 			"  the instructions are executed in order using raw values (\"Received:\", 16,\n"
@@ -2254,6 +2604,15 @@ int main(int argc, char **argv){
 			"    ControlSound8     (4D)          ControlEffect3     (5D)\n"
 			"    ControlSound9     (4E)          ControlEffect4     (5E)\n"
 			"    ControlSound10    (4F)          ControlEffect5     (5F)\n"
+			"    ControlReserved1  (66)          ControlReserved2   (67)\n"
+			"    ControlReserved3  (68)          ControlReserved4   (69)\n"
+			"    ControlReserved5  (6A)          ControlReserved6   (6B)\n"
+			"    ControlReserved7  (6C)          ControlReserved8   (6D)\n"
+			"    ControlReserved9  (6E)          ControlReserved10  (6F)\n"
+			"    ControlReserved11 (70)          ControlReserved12  (71)\n"
+			"    ControlReserved13 (72)          ControlReserved14  (73)\n"
+			"    ControlReserved15 (74)          ControlReserved16  (75)\n"
+			"    ControlReserved17 (76)          ControlReserved18  (77)\n"
 			"\n"
 			"  High-Resolution Controls (MIDI hex values in parenthesis for reference):\n"
 			"    ControlBank           (00/20)   ControlGeneral1    (10/30)\n"
@@ -2273,6 +2632,20 @@ int main(int argc, char **argv){
 			"    ControlUndefined9     (0F/2F)   ControlUndefined20 (1E/3E)\n"
 			"                                    ControlUndefined21 (1F/3F)\n"
 			"\n"
+			"  If -f mode is used, then high-resolution controllers are interpreted as\n"
+			"  two separate low-resolution controllers.  These are identified by taking\n"
+			"  the high-resolution controller name and adding MSB or LSB to the end.\n"
+			"  For example:\n"
+			"    ControlBank (00/20) becomes:  ControlBankMSB (00)  ControlBankLSB (20)\n"
+			"    ControlMod  (01/21) becomes:  ControlModMSB  (01)  ControlModLSB  (21)\n"
+			"    ...etc\n"
+			"  The -f mode also disables RPN/NRPN conrols, and instead interprets the\n"
+			"  CC messages as low-resolution controllers with the names:\n"
+			"    ControlDataMSB       (06)       ControlDataLSB       (26)\n"
+			"    ControlPNIncrement   (60)       ControlPNDecrement   (61)\n"
+			"    ControlNRPNSelectLSB (62)       ControlNRPNSelectMSB (63)\n"
+			"    ControlRPNSelectLSB  (64)       ControlRPNSelectMSB  (65)\n"
+			"\n"
 			"  Registered Parameters (MIDI hex values in parenthesis for reference):\n"
 			"    RPNBendRange     (00/00)        RPNAzimuth          (3D/00)\n"
 			"    RPNFineTuning    (00/01)        RPNElevation        (3D/01)\n"
@@ -2283,6 +2656,23 @@ int main(int argc, char **argv){
 			"    RPNEmpty         (7F/7F)        RPNRefDistanceRatio (3D/06)\n"
 			"                                    RPNPanSpread        (3D/07)\n"
 			"                                    RPNRoll             (3D/08)\n"
+			"\n"
+			"  Aliases:\n"
+			"    Any number, Note*, Control*, or RPN* keyword can be aliased to another\n"
+			"    keyword starting with @.  For example, if your MIDI controller sends\n"
+			"    ControlReserved1 when hitting the play button, you can alias it via:\n"
+			"\n"
+			"      Alias @PlayChannel  1\n"
+			"      Alias @PlayButton   ControlReserved1\n"
+			"\n"
+			"    Then, it can be referenced anywhere else, like:\n"
+			"\n"
+			"      OnLowCC @PlayChannel @PlayButton Positive\n"
+			"        # play was hit...\n"
+			"      End\n"
+			"\n"
+			"    Aliases can also be defined from the command-line using -a:\n"
+			"      midimap -a @PlayChannel 1 -a @PlayButton ControlReserved1 ...etc...\n"
 			"\n"
 			"  Commands:\n"
 			"    Print \"Message\" \"Another\" ...                    Print values to console\n"
@@ -2304,34 +2694,6 @@ int main(int argc, char **argv){
 			"\n"
 			"  For more information on specifying input devices, run:\n"
 			"    midimap --help input\n"
-		);
-		return 0;
-	}
-
-	// look for help
-	if (has_help){
-		printf(
-			"Usage:\n"
-			"  midimap [-d] [-m \"Input Device\" <mapfile>]+\n"
-			"\n"
-			"  With no arguments specified, midimap will simply list the available sources\n"
-			"  for MIDI input.\n"
-			"\n"
-			"  For every `-m` argument, the program will listen for MIDI messages from the\n"
-			"  input device, and apply the rules outlined in the <mapfile> for every message\n"
-			"  received.\n"
-			"\n"
-			"  The program will output the results to a single virtual MIDI device, named\n"
-			"  in the format of \"midimap\", \"midimap 2\", \"midimap 3\", etc, for each\n"
-			"  copy of the program running.\n"
-			"\n"
-			"  Use -d to specify debug mode (verbose logging).\n"
-			"\n"
-			"  For more information on specifying input devices, run:\n"
-			"    midimap --help input\n"
-			"\n"
-			"  For more information on how the mapfile works, run:\n"
-			"    midimap --help mapfile\n"
 		);
 		return 0;
 	}
@@ -2389,12 +2751,9 @@ int main(int argc, char **argv){
 	// interpret the command line arguments
 	bool should_listen = false;
 	{
-		for (int i = 1; i < argc; i += 3){
-			if (strcmp(argv[i], "-m") != 0 || i >= argc - 2){
-				fprintf(stderr, "Invalid command line argument\nFor help, type:\n  midimap --help");
-				result = 1;
-				goto cleanup;
-			}
+		for (int i = 1; i < argc; i++){
+			if (strcmp(argv[i], "-m") != 0)
+				continue;
 			// look for the device
 			int devi = -1;
 			int srci = -1;
@@ -2409,7 +2768,7 @@ int main(int argc, char **argv){
 				goto cleanup;
 			}
 			// parse the map file
-			mapfile mf = mapfile_parse(argv[i + 2]);
+			mapfile mf = mapfile_parse(alcmd, argv[i + 2]);
 			if (mf == NULL){
 				result = 1;
 				goto cleanup;
@@ -2419,6 +2778,7 @@ int main(int argc, char **argv){
 			srcs[srci].size++;
 			srcs[srci].mfs = m_realloc(srcs[srci].mfs, sizeof(mapfile) * srcs[srci].size);
 			srcs[srci].mfs[srcs[srci].size - 1] = mf;
+			i += 2;
 		}
 	}
 
@@ -2443,7 +2803,7 @@ int main(int argc, char **argv){
 			for (int i = 0; i < srcs_size && !found; i++)
 				found = srcs[i].name && strcmp(name, srcs[i].name) == 0;
 			if (found){
-				free(name);
+				m_free(name);
 				namei++;
 				continue;
 			}
@@ -2455,13 +2815,13 @@ int main(int argc, char **argv){
 		CFRelease(cfname);
 		if (st != 0){
 			fprintf(stderr, "Failed to create virtual MIDI endpoint \"%s\"\n", name);
-			free(name);
+			m_free(name);
 			result = 1;
 			goto cleanup;
 		}
 		init_out = true;
 		printf("Virtual MIDI device for output:\n  %s\n\n", name);
-		free(name);
+		m_free(name);
 	}
 
 	// open MIDI devices
@@ -2512,6 +2872,7 @@ int main(int argc, char **argv){
 	}
 
 	cleanup:
+	list_alias_free(alcmd);
 	for (int i = 0; i < srcs_size; i++){
 		if (srcs[i].opened){
 			MIDIPortDisconnectSource(srcs[i].pref, srcs[i].ep);
